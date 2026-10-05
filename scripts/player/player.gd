@@ -1,0 +1,403 @@
+extends CharacterBody2D
+
+signal health_changed(current, maximum)
+signal weapon_changed(text)
+signal core_changed(current, maximum)
+signal special_used(text)
+signal died
+signal input_scheme_changed(using_gamepad: bool)
+
+const PROJECTILE_SCENE := preload("res://scenes/combat/projectile.tscn")
+
+@export var move_speed := 440.0
+@export var acceleration := 4600.0
+@export var friction := 5200.0
+@export var jump_velocity := -1025.0
+@export var gravity_up := 2850.0
+@export var gravity_down := 6000.0
+@export var max_fall_speed := 2200.0
+@export var coyote_time := 0.12
+@export var jump_buffer_time := 0.12
+@export var dash_speed := 760.0
+@export var dash_duration := 0.14
+@export var dash_cooldown := 0.25
+
+var max_health := 5
+var health := 5
+var facing := 1.0
+var coyote_left := 0.0
+var jump_buffer_left := 0.0
+var dash_left := 0.0
+var dash_cooldown_left := 0.0
+var invulnerability_left := 0.0
+var fire_left := 0.0
+var fire_interval := 0.15
+var spread_level := 1
+var dead := false
+var checkpoint_position := Vector2.ZERO
+var using_gamepad := false
+var aim_direction := Vector2.RIGHT
+var aim_deadzone := 0.28
+
+# Special system: 3 segments, one segment per special.
+var core_max := 3.0
+var core_energy := 1.0
+var special_dir_buffer := Vector2.ZERO
+var special_dir_left := 0.0
+var special_buffer_time := 0.14
+var phase_rush_left := 0.0
+var phase_rush_duration := 0.18
+var phase_rush_speed := 1250.0
+var phase_hit_ids := {}
+
+@onready var body_visual: Polygon2D = $Body
+@onready var core_visual: Polygon2D = $Core
+
+func _ready() -> void:
+	add_to_group("player")
+	collision_layer = 2
+	collision_mask = 5
+	checkpoint_position = global_position
+	_setup_input_actions()
+	using_gamepad = not Input.get_connected_joypads().is_empty()
+	queue_redraw()
+
+func _input(event: InputEvent) -> void:
+	var previous := using_gamepad
+	if event is InputEventJoypadButton or event is InputEventJoypadMotion:
+		using_gamepad = true
+	elif event is InputEventKey or event is InputEventMouseButton or event is InputEventMouseMotion:
+		using_gamepad = false
+	if previous != using_gamepad:
+		input_scheme_changed.emit(using_gamepad)
+		queue_redraw()
+
+func _setup_input_actions() -> void:
+	_add_joy_axis("move_left", JOY_AXIS_LEFT_X, -1.0)
+	_add_joy_axis("move_right", JOY_AXIS_LEFT_X, 1.0)
+	_add_joy_button("move_left", JOY_BUTTON_DPAD_LEFT)
+	_add_joy_button("move_right", JOY_BUTTON_DPAD_RIGHT)
+	_add_joy_button("jump", JOY_BUTTON_A)
+	_add_joy_button("dash", JOY_BUTTON_B)
+	_add_joy_button("dash", JOY_BUTTON_RIGHT_SHOULDER)
+	_add_joy_axis("shoot", JOY_AXIS_TRIGGER_RIGHT, 1.0)
+	_add_joy_button("shoot", JOY_BUTTON_X)
+
+	_ensure_action("aim_left", 0.22)
+	_ensure_action("aim_right", 0.22)
+	_ensure_action("aim_up", 0.22)
+	_ensure_action("aim_down", 0.22)
+	_add_joy_axis("aim_left", JOY_AXIS_RIGHT_X, -1.0)
+	_add_joy_axis("aim_right", JOY_AXIS_RIGHT_X, 1.0)
+	_add_joy_axis("aim_up", JOY_AXIS_RIGHT_Y, -1.0)
+	_add_joy_axis("aim_down", JOY_AXIS_RIGHT_Y, 1.0)
+
+	_ensure_action("special", 0.2)
+	_ensure_action("special_up", 0.2)
+	_ensure_action("special_down", 0.2)
+	_add_key("special", KEY_Q)
+	_add_joy_button("special", JOY_BUTTON_Y)
+	_add_key("special_up", KEY_W)
+	_add_key("special_up", KEY_UP)
+	_add_key("special_down", KEY_S)
+	_add_key("special_down", KEY_DOWN)
+	_add_joy_button("special_up", JOY_BUTTON_DPAD_UP)
+	_add_joy_button("special_down", JOY_BUTTON_DPAD_DOWN)
+	_add_joy_axis("special_up", JOY_AXIS_LEFT_Y, -1.0)
+	_add_joy_axis("special_down", JOY_AXIS_LEFT_Y, 1.0)
+
+func _ensure_action(action: StringName, deadzone: float = 0.2) -> void:
+	if not InputMap.has_action(action):
+		InputMap.add_action(action, deadzone)
+
+func _add_key(action: StringName, key: int) -> void:
+	_ensure_action(action)
+	var event := InputEventKey.new()
+	event.physical_keycode = key
+	if not InputMap.action_has_event(action, event):
+		InputMap.action_add_event(action, event)
+
+func _add_joy_button(action: StringName, button: int) -> void:
+	_ensure_action(action)
+	var event := InputEventJoypadButton.new()
+	event.button_index = button
+	if not InputMap.action_has_event(action, event):
+		InputMap.action_add_event(action, event)
+
+func _add_joy_axis(action: StringName, axis: int, value: float) -> void:
+	_ensure_action(action)
+	var event := InputEventJoypadMotion.new()
+	event.axis = axis
+	event.axis_value = value
+	if not InputMap.action_has_event(action, event):
+		InputMap.action_add_event(action, event)
+
+func _physics_process(delta: float) -> void:
+	if dead:
+		return
+
+	_update_aim_direction()
+	_update_special_direction_buffer(delta)
+	fire_left = maxf(fire_left - delta, 0.0)
+	invulnerability_left = maxf(invulnerability_left - delta, 0.0)
+
+	if invulnerability_left > 0.0:
+		modulate.a = 0.45 if int(invulnerability_left * 20.0) % 2 == 0 else 1.0
+	else:
+		modulate.a = 1.0
+
+	if Input.is_action_pressed("shoot") and fire_left <= 0.0 and phase_rush_left <= 0.0:
+		_shoot()
+		fire_left = fire_interval
+
+	if is_on_floor():
+		coyote_left = coyote_time
+	else:
+		coyote_left = maxf(coyote_left - delta, 0.0)
+
+	if Input.is_action_just_pressed("jump"):
+		jump_buffer_left = jump_buffer_time
+	else:
+		jump_buffer_left = maxf(jump_buffer_left - delta, 0.0)
+
+	dash_cooldown_left = maxf(dash_cooldown_left - delta, 0.0)
+	if Input.is_action_just_pressed("dash") and dash_left <= 0.0 and phase_rush_left <= 0.0 and dash_cooldown_left <= 0.0:
+		var input_dir := Input.get_axis("move_left", "move_right")
+		if input_dir != 0.0:
+			facing = signf(input_dir)
+		dash_left = dash_duration
+		dash_cooldown_left = dash_cooldown
+
+	if Input.is_action_just_pressed("special"):
+		_try_special()
+
+	if phase_rush_left > 0.0:
+		phase_rush_left -= delta
+		velocity = Vector2(facing * phase_rush_speed, 0.0)
+		_damage_phase_rush_targets()
+		_update_visual()
+		move_and_slide()
+		queue_redraw()
+		return
+
+	if dash_left > 0.0:
+		dash_left -= delta
+		velocity = Vector2(facing * dash_speed, 0.0)
+		_update_visual()
+		move_and_slide()
+		queue_redraw()
+		return
+
+	var direction := Input.get_axis("move_left", "move_right")
+	if direction != 0.0:
+		facing = signf(direction)
+		velocity.x = move_toward(velocity.x, direction * move_speed, acceleration * delta)
+	else:
+		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
+
+	if not is_on_floor():
+		var active_gravity := gravity_up if velocity.y < 0.0 else gravity_down
+		velocity.y = minf(velocity.y + active_gravity * delta, max_fall_speed)
+
+	if jump_buffer_left > 0.0 and coyote_left > 0.0:
+		velocity.y = jump_velocity
+		jump_buffer_left = 0.0
+		coyote_left = 0.0
+
+	if Input.is_action_just_released("jump") and velocity.y < -120.0:
+		velocity.y *= 0.50
+
+	_update_visual()
+	move_and_slide()
+	queue_redraw()
+
+func _update_special_direction_buffer(delta: float) -> void:
+	special_dir_left = maxf(special_dir_left - delta, 0.0)
+	var current := Vector2(
+		Input.get_axis("move_left", "move_right"),
+		Input.get_axis("special_up", "special_down")
+	)
+	if current.length() > 0.35:
+		special_dir_buffer = current.normalized()
+		special_dir_left = special_buffer_time
+	elif special_dir_left <= 0.0:
+		special_dir_buffer = Vector2.ZERO
+
+func _try_special() -> void:
+	if core_energy < 1.0:
+		special_used.emit("CORE EMPTY")
+		return
+
+	# Phase Rush only exists as a deliberate dash cancel.
+	if dash_left > 0.0:
+		_start_phase_rush()
+		return
+
+	var dir := special_dir_buffer if special_dir_left > 0.0 else Vector2.ZERO
+	if dir.y < -0.55:
+		_sky_breaker()
+	elif dir.y > 0.55:
+		_ground_burst()
+	else:
+		_core_blast()
+
+func _spend_core(amount: float = 1.0) -> bool:
+	if core_energy + 0.001 < amount:
+		return false
+	core_energy = maxf(core_energy - amount, 0.0)
+	core_changed.emit(core_energy, core_max)
+	return true
+
+func add_core(amount: float) -> void:
+	if amount <= 0.0 or core_energy >= core_max:
+		return
+	core_energy = minf(core_energy + amount, core_max)
+	core_changed.emit(core_energy, core_max)
+
+func _core_blast() -> void:
+	if not _spend_core():
+		return
+	var aim := aim_direction.normalized()
+	if aim.length_squared() < 0.01:
+		aim = Vector2(facing, 0.0)
+	_spawn_player_projectile(aim, 3, 1450.0, true, 0.0)
+	special_used.emit("SPECIAL // CORE BLAST")
+
+func _sky_breaker() -> void:
+	if not _spend_core():
+		return
+	for angle in [-0.24, -0.12, 0.0, 0.12, 0.24]:
+		_spawn_player_projectile(Vector2.UP.rotated(angle), 2, 1180.0, true, 0.0)
+	velocity.y = minf(velocity.y, -280.0)
+	special_used.emit("SPECIAL // SKY BREAKER")
+
+func _ground_burst() -> void:
+	if not _spend_core():
+		return
+	var dir := Vector2(facing, 0.0)
+	var bullet = _spawn_player_projectile(dir, 3, 900.0, true, 0.0)
+	bullet.global_position = global_position + Vector2(facing * 38.0, 15.0)
+	special_used.emit("SPECIAL // GROUND BURST")
+
+func _start_phase_rush() -> void:
+	if not _spend_core():
+		return
+	var horizontal := Input.get_axis("move_left", "move_right")
+	if absf(horizontal) > 0.2:
+		facing = signf(horizontal)
+	dash_left = 0.0
+	phase_rush_left = phase_rush_duration
+	phase_hit_ids.clear()
+	special_used.emit("SPECIAL // PHASE RUSH")
+
+func _damage_phase_rush_targets() -> void:
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(enemy) or not enemy is Node2D:
+			continue
+		var id := enemy.get_instance_id()
+		if phase_hit_ids.has(id):
+			continue
+		if global_position.distance_to(enemy.global_position) <= 72.0 and enemy.has_method("take_damage"):
+			phase_hit_ids[id] = true
+			enemy.take_damage(4, Vector2(facing * 360.0, -80.0))
+
+func _update_aim_direction() -> void:
+	if using_gamepad:
+		var stick := Input.get_vector("aim_left", "aim_right", "aim_up", "aim_down")
+		if stick.length() >= aim_deadzone:
+			aim_direction = stick.normalized()
+	else:
+		var mouse_aim := global_position.direction_to(get_global_mouse_position())
+		if mouse_aim.length_squared() > 0.01:
+			aim_direction = mouse_aim.normalized()
+	if aim_direction.x != 0.0:
+		facing = signf(aim_direction.x)
+
+func _shoot() -> void:
+	var aim := aim_direction
+	if aim.length_squared() < 0.01:
+		aim = Vector2(facing, 0.0)
+
+	var angles := [0.0]
+	if spread_level >= 3:
+		angles = [-0.14, 0.0, 0.14]
+
+	for angle in angles:
+		_spawn_player_projectile(aim.rotated(angle), 1, 1120.0, false, 0.12)
+
+	core_visual.rotation += 0.24
+
+func _spawn_player_projectile(dir: Vector2, damage: int, speed: float, special_visual: bool, core_gain: float):
+	var bullet = PROJECTILE_SCENE.instantiate()
+	get_tree().current_scene.add_child(bullet)
+	bullet.global_position = global_position + dir.normalized() * 34.0
+	bullet.setup(dir, false, damage, speed, self, core_gain, special_visual)
+	return bullet
+
+func _draw() -> void:
+	if using_gamepad:
+		var center := aim_direction.normalized() * 76.0
+		var color := Color(0.25, 0.95, 1.0, 0.92)
+		draw_circle(center, 10.0, Color(0.02, 0.03, 0.07, 0.75))
+		draw_arc(center, 10.0, 0.0, TAU, 20, color, 2.0)
+		draw_line(center + Vector2(-15, 0), center + Vector2(-6, 0), color, 2.0)
+		draw_line(center + Vector2(6, 0), center + Vector2(15, 0), color, 2.0)
+		draw_line(center + Vector2(0, -15), center + Vector2(0, -6), color, 2.0)
+		draw_line(center + Vector2(0, 6), center + Vector2(0, 15), color, 2.0)
+
+	if phase_rush_left > 0.0:
+		draw_arc(Vector2.ZERO, 34.0, 0.0, TAU, 28, Color(1.0, 0.35, 0.8, 0.9), 5.0)
+
+func take_damage(amount: int, knockback: Vector2 = Vector2.ZERO) -> void:
+	if dead or invulnerability_left > 0.0 or dash_left > 0.0 or phase_rush_left > 0.0:
+		return
+	health = maxi(health - amount, 0)
+	health_changed.emit(health, max_health)
+	if health <= 0:
+		dead = true
+		modulate = Color(1.0, 0.25, 0.38, 1.0)
+		died.emit()
+		return
+	invulnerability_left = 0.75
+	velocity = knockback
+
+func apply_upgrade(kind: String) -> void:
+	match kind:
+		"heal":
+			health = mini(health + 2, max_health)
+			health_changed.emit(health, max_health)
+			weapon_changed.emit("REPAIR +2")
+		"rapid":
+			fire_interval = 0.085
+			weapon_changed.emit("WEAPON: RAPID")
+		"spread":
+			spread_level = 3
+			weapon_changed.emit("WEAPON: SPREAD")
+
+func set_checkpoint(new_position: Vector2) -> void:
+	checkpoint_position = new_position
+
+func fall_respawn() -> void:
+	if dead:
+		return
+	invulnerability_left = 0.0
+	take_damage(1)
+	if not dead:
+		global_position = checkpoint_position
+		velocity = Vector2.ZERO
+
+func _update_visual() -> void:
+	if phase_rush_left > 0.0:
+		body_visual.scale = Vector2(1.45, 0.62)
+		core_visual.scale = Vector2(1.35, 0.68)
+	elif dash_left > 0.0:
+		body_visual.scale = Vector2(1.28, 0.72)
+		core_visual.scale = Vector2(1.18, 0.75)
+	elif not is_on_floor():
+		if velocity.y < 0.0:
+			body_visual.scale = body_visual.scale.lerp(Vector2(0.9, 1.12), 0.22)
+		else:
+			body_visual.scale = body_visual.scale.lerp(Vector2(1.08, 0.92), 0.22)
+	else:
+		body_visual.scale = body_visual.scale.lerp(Vector2.ONE, 0.3)
+		core_visual.scale = core_visual.scale.lerp(Vector2.ONE, 0.3)
