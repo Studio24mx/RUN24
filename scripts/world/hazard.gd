@@ -3,6 +3,7 @@ extends Area2D
 @export var damage := 1
 
 func _ready() -> void:
+	add_to_group("hazards")
 	collision_layer = 0
 	collision_mask = 2
 	body_entered.connect(_on_body_entered)

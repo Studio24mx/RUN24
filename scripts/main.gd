@@ -10,7 +10,7 @@ var player
 var boss
 var room_counts := {1: 0, 2: 0, 3: 0}
 var gates := {}
-var checkpoint_set := false
+var gate_reconcile_left := 0.0
 var boss_started := false
 var level_finished := false
 
@@ -37,7 +37,7 @@ func _ready() -> void:
 	_update_weapon("WEAPON: BASIC")
 	_toast("ZONE 01 // SIGNAL DISTRICT")
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not is_instance_valid(player):
 		return
 
@@ -45,10 +45,10 @@ func _process(_delta: float) -> void:
 		player.fall_respawn()
 		_toast("VOID HIT // -1 HP")
 
-	if not checkpoint_set and player.global_position.x > 2220.0:
-		checkpoint_set = true
-		player.set_checkpoint(Vector2(2290, 570))
-		_toast("CHECKPOINT LOCKED")
+	gate_reconcile_left -= delta
+	if gate_reconcile_left <= 0.0:
+		gate_reconcile_left = 0.25
+		_reconcile_room_gates()
 
 	if not boss_started and player.global_position.x > 4180.0:
 		boss_started = true
@@ -118,22 +118,22 @@ func _build_world() -> void:
 	_make_platform(Vector2(3925, 680), Vector2(250, 80), floor_color)
 	_make_platform(Vector2(4625, 680), Vector2(1150, 80), floor_color)
 
-	_make_platform(Vector2(470, 520), Vector2(260, 24), platform_color)
-	_make_platform(Vector2(870, 420), Vector2(230, 24), platform_color)
-	_make_platform(Vector2(1190, 520), Vector2(190, 24), platform_color)
+	_make_platform(Vector2(470, 520), Vector2(260, 24), platform_color, true)
+	_make_platform(Vector2(870, 420), Vector2(230, 24), platform_color, true)
+	_make_platform(Vector2(1190, 520), Vector2(190, 24), platform_color, true)
 
-	_make_platform(Vector2(1650, 520), Vector2(220, 24), platform_color)
-	_make_platform(Vector2(1900, 405), Vector2(190, 24), platform_color)
-	_make_platform(Vector2(2390, 500), Vector2(250, 24), platform_color)
-	_make_platform(Vector2(2780, 410), Vector2(210, 24), platform_color)
-	_make_platform(Vector2(2980, 525), Vector2(150, 24), platform_color)
+	_make_platform(Vector2(1650, 520), Vector2(220, 24), platform_color, true)
+	_make_platform(Vector2(1900, 405), Vector2(190, 24), platform_color, true)
+	_make_platform(Vector2(2390, 500), Vector2(250, 24), platform_color, true)
+	_make_platform(Vector2(2780, 410), Vector2(210, 24), platform_color, true)
+	_make_platform(Vector2(2980, 525), Vector2(150, 24), platform_color, true)
 
-	_make_platform(Vector2(3260, 505), Vector2(190, 24), platform_color)
-	_make_platform(Vector2(3480, 385), Vector2(190, 24), platform_color)
-	_make_platform(Vector2(3900, 495), Vector2(180, 24), platform_color)
+	_make_platform(Vector2(3260, 505), Vector2(190, 24), platform_color, true)
+	_make_platform(Vector2(3480, 385), Vector2(190, 24), platform_color, true)
+	_make_platform(Vector2(3900, 495), Vector2(180, 24), platform_color, true)
 
-	_make_platform(Vector2(4310, 500), Vector2(190, 24), platform_color)
-	_make_platform(Vector2(4830, 470), Vector2(200, 24), platform_color)
+	_make_platform(Vector2(4310, 500), Vector2(190, 24), platform_color, true)
+	_make_platform(Vector2(4830, 470), Vector2(200, 24), platform_color, true)
 
 	_make_platform(Vector2(-20, 360), Vector2(40, 720), floor_color)
 	_make_platform(Vector2(5220, 360), Vector2(40, 720), floor_color)
@@ -147,16 +147,20 @@ func _build_world() -> void:
 	_create_gate(2, 3100.0, Color(1.0, 0.72, 0.18, 0.85))
 	_create_gate(3, 4050.0, Color(1.0, 0.24, 0.68, 0.85))
 
-func _make_platform(pos: Vector2, size: Vector2, color: Color) -> StaticBody2D:
+func _make_platform(pos: Vector2, size: Vector2, color: Color, one_way: bool = false) -> StaticBody2D:
 	var body := StaticBody2D.new()
 	body.position = pos
-	body.collision_layer = 1
+	body.collision_layer = 32 if one_way else 1
 	body.collision_mask = 0
+	if one_way:
+		body.add_to_group("drop_through_platforms")
 
 	var shape := RectangleShape2D.new()
 	shape.size = size
 	var collision := CollisionShape2D.new()
 	collision.shape = shape
+	collision.one_way_collision = one_way
+	collision.one_way_collision_margin = 14.0
 	body.add_child(collision)
 
 	var visual := Polygon2D.new()
@@ -190,7 +194,9 @@ func _open_gate(room_id: int) -> void:
 		return
 	var gate = gates[room_id]
 	if not is_instance_valid(gate):
+		gates.erase(room_id)
 		return
+	gates.erase(room_id)
 	gate.collision_layer = 0
 	var tween := create_tween()
 	tween.set_parallel(true)
@@ -241,6 +247,7 @@ func _spawn_enemy(kind: String, pos: Vector2, room_id: int) -> void:
 	enemy.room_id = room_id
 	enemy.position = pos
 	add_child(enemy)
+	enemy.add_to_group("room_%d_enemies" % room_id)
 	enemy.died.connect(_on_enemy_died)
 	room_counts[room_id] += 1
 
@@ -260,7 +267,21 @@ func _on_enemy_died(_enemy, room_id: int) -> void:
 	if is_instance_valid(player):
 		player.add_core(0.18)
 	room_counts[room_id] = maxi(room_counts[room_id] - 1, 0)
-	if room_counts[room_id] == 0:
+	_reconcile_room_gate(room_id)
+
+func _reconcile_room_gates() -> void:
+	for room_id in [1, 2, 3]:
+		_reconcile_room_gate(room_id)
+
+func _reconcile_room_gate(room_id: int) -> void:
+	if not gates.has(room_id):
+		return
+	var live_count := 0
+	for enemy in get_tree().get_nodes_in_group("room_%d_enemies" % room_id):
+		if is_instance_valid(enemy) and not enemy.dead:
+			live_count += 1
+	room_counts[room_id] = live_count
+	if live_count == 0:
 		_open_gate(room_id)
 
 func _build_hud() -> void:
@@ -346,9 +367,9 @@ func _update_controls(gamepad: bool) -> void:
 	if not is_instance_valid(help_label):
 		return
 	if gamepad:
-		help_label.text = "L-STICK/DPAD MOVER · A/CROSS SALTAR · B/CIRCLE/RB DASH · R-STICK APUNTAR · RT/R2 DISPARAR\nY/TRIANGLE ESPECIAL · ↑+Y SKY BREAKER · ↓+Y GROUND BURST · DASH+Y PHASE RUSH"
+		help_label.text = "L-STICK/DPAD MOVER · A/CROSS SALTAR · B/CIRCLE/RB DASH · R-STICK APUNTAR · RT/R2 DISPARAR\nY/TRIANGLE ESPECIAL · ↓ BAJAR PLATAFORMA · ↓+Y GROUND BURST · DASH+Y PHASE RUSH"
 	else:
-		help_label.text = "A/D MOVER · ESPACIO SALTAR · SHIFT DASH · MOUSE DISPARAR/APUNTAR\nQ ESPECIAL · W+Q SKY BREAKER · S+Q GROUND BURST · DASH+Q PHASE RUSH"
+		help_label.text = "A/D MOVER · ESPACIO SALTAR · SHIFT DASH · MOUSE DISPARAR/APUNTAR\nQ ESPECIAL · S/↓ BAJAR PLATAFORMA · S+Q GROUND BURST · DASH+Q PHASE RUSH"
 
 func _update_health(current: int, maximum: int) -> void:
 	if is_instance_valid(health_label):

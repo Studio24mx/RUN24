@@ -35,6 +35,12 @@ var fire_interval := 0.15
 var spread_level := 1
 var dead := false
 var checkpoint_position := Vector2.ZERO
+var safe_checkpoint_left := 0.0
+var safe_checkpoint_interval := 0.28
+var drop_request_left := 0.0
+var drop_request_window := 0.12
+var drop_through_left := 0.0
+var drop_through_duration := 0.20
 var using_gamepad := false
 var aim_direction := Vector2.RIGHT
 var aim_deadzone := 0.28
@@ -56,7 +62,7 @@ var phase_hit_ids := {}
 func _ready() -> void:
 	add_to_group("player")
 	collision_layer = 2
-	collision_mask = 5
+	collision_mask = 37
 	checkpoint_position = global_position
 	_setup_input_actions()
 	using_gamepad = not Input.get_connected_joypads().is_empty()
@@ -94,7 +100,7 @@ func _setup_input_actions() -> void:
 
 	_ensure_action("special", 0.2)
 	_ensure_action("special_up", 0.2)
-	_ensure_action("special_down", 0.2)
+	_ensure_action("special_down", 0.60)
 	_add_key("special", KEY_Q)
 	_add_joy_button("special", JOY_BUTTON_Y)
 	_add_key("special_up", KEY_W)
@@ -138,6 +144,8 @@ func _physics_process(delta: float) -> void:
 
 	_update_aim_direction()
 	_update_special_direction_buffer(delta)
+	_update_drop_through(delta)
+	_update_safe_checkpoint(delta)
 	fire_left = maxf(fire_left - delta, 0.0)
 	invulnerability_left = maxf(invulnerability_left - delta, 0.0)
 
@@ -159,6 +167,9 @@ func _physics_process(delta: float) -> void:
 		jump_buffer_left = jump_buffer_time
 	else:
 		jump_buffer_left = maxf(jump_buffer_left - delta, 0.0)
+
+	if Input.is_action_just_pressed("special_down") and is_on_floor() and _has_drop_platform_below():
+		drop_request_left = drop_request_window
 
 	dash_cooldown_left = maxf(dash_cooldown_left - delta, 0.0)
 	if Input.is_action_just_pressed("dash") and dash_left <= 0.0 and phase_rush_left <= 0.0 and dash_cooldown_left <= 0.0:
@@ -224,6 +235,8 @@ func _update_special_direction_buffer(delta: float) -> void:
 		special_dir_buffer = Vector2.ZERO
 
 func _try_special() -> void:
+	# A down+special input takes priority over the delayed platform drop.
+	drop_request_left = 0.0
 	if core_energy < 1.0:
 		special_used.emit("CORE EMPTY")
 		return
@@ -377,12 +390,70 @@ func apply_upgrade(kind: String) -> void:
 func set_checkpoint(new_position: Vector2) -> void:
 	checkpoint_position = new_position
 
+func _update_safe_checkpoint(delta: float) -> void:
+	safe_checkpoint_left = maxf(safe_checkpoint_left - delta, 0.0)
+	if safe_checkpoint_left > 0.0 or not is_on_floor() or drop_through_left > 0.0:
+		return
+	if not _has_safe_support_below() or _near_hazard():
+		return
+	checkpoint_position = global_position + Vector2(0.0, -4.0)
+	safe_checkpoint_left = safe_checkpoint_interval
+
+func _has_safe_support_below() -> bool:
+	var space := get_world_2d().direct_space_state
+	for offset_x in [-14.0, 14.0]:
+		var from := global_position + Vector2(offset_x, 24.0)
+		var to := global_position + Vector2(offset_x, 52.0)
+		var query := PhysicsRayQueryParameters2D.create(from, to, 33, [get_rid()])
+		query.collide_with_areas = false
+		if space.intersect_ray(query).is_empty():
+			return false
+	return true
+
+func _near_hazard() -> bool:
+	for hazard in get_tree().get_nodes_in_group("hazards"):
+		if is_instance_valid(hazard) and global_position.distance_to(hazard.global_position) < 72.0:
+			return true
+	return false
+
+func _has_drop_platform_below() -> bool:
+	var space := get_world_2d().direct_space_state
+	var from := global_position + Vector2(0.0, 24.0)
+	var to := global_position + Vector2(0.0, 54.0)
+	var query := PhysicsRayQueryParameters2D.create(from, to, 32, [get_rid()])
+	query.collide_with_areas = false
+	return not space.intersect_ray(query).is_empty()
+
+func _update_drop_through(delta: float) -> void:
+	if drop_through_left > 0.0:
+		drop_through_left = maxf(drop_through_left - delta, 0.0)
+		if drop_through_left <= 0.0:
+			set_collision_mask_value(6, true)
+
+	if drop_request_left > 0.0:
+		drop_request_left = maxf(drop_request_left - delta, 0.0)
+		if drop_request_left <= 0.0:
+			_start_drop_through()
+
+func _start_drop_through() -> void:
+	if not _has_drop_platform_below():
+		return
+	set_collision_mask_value(6, false)
+	drop_through_left = drop_through_duration
+	coyote_left = 0.0
+	jump_buffer_left = 0.0
+	global_position.y += 8.0
+	velocity.y = maxf(velocity.y, 180.0)
+
 func fall_respawn() -> void:
 	if dead:
 		return
 	invulnerability_left = 0.0
 	take_damage(1)
 	if not dead:
+		set_collision_mask_value(6, true)
+		drop_through_left = 0.0
+		drop_request_left = 0.0
 		global_position = checkpoint_position
 		velocity = Vector2.ZERO
 

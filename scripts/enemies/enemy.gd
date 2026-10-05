@@ -41,6 +41,9 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if dead:
 		return
+	if global_position.y > 880.0:
+		_die()
+		return
 	var player := get_tree().get_first_node_in_group("player")
 	if not is_instance_valid(player):
 		return
@@ -94,9 +97,14 @@ func take_damage(amount: int, knockback: Vector2 = Vector2.ZERO) -> void:
 	tween.tween_property(self, "modulate", Color.WHITE, 0.09)
 	queue_redraw()
 	if health <= 0:
-		dead = true
-		died.emit(self, room_id)
-		queue_free()
+		_die()
+
+func _die() -> void:
+	if dead:
+		return
+	dead = true
+	died.emit(self, room_id)
+	queue_free()
 
 func _draw() -> void:
 	var ratio := clampf(float(health) / float(max_health), 0.0, 1.0)
