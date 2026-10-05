@@ -163,6 +163,21 @@ func _make_platform(pos: Vector2, size: Vector2, color: Color, one_way: bool = f
 	collision.one_way_collision_margin = 14.0
 	body.add_child(collision)
 
+	# One-way platforms stay passable for the player, but bullets need a solid
+	# geometry blocker from every direction. Layer 7 (mask value 64) is reserved
+	# exclusively for projectile blockers.
+	if one_way:
+		var projectile_blocker := StaticBody2D.new()
+		projectile_blocker.position = pos
+		projectile_blocker.collision_layer = 64
+		projectile_blocker.collision_mask = 0
+		var blocker_shape := RectangleShape2D.new()
+		blocker_shape.size = size
+		var blocker_collision := CollisionShape2D.new()
+		blocker_collision.shape = blocker_shape
+		projectile_blocker.add_child(blocker_collision)
+		add_child(projectile_blocker)
+
 	var visual := Polygon2D.new()
 	visual.polygon = PackedVector2Array([
 		Vector2(-size.x * 0.5, -size.y * 0.5),

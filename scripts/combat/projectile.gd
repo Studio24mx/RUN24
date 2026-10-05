@@ -32,15 +32,23 @@ func setup(
 
 	if enemy_owned:
 		collision_layer = 16
-		collision_mask = 3
+		# World (1) + player (2) + projectile-only platform blockers (64).
+		collision_mask = 67
 	else:
 		collision_layer = 8
-		collision_mask = 5
+		# World (1) + enemies (4) + projectile-only platform blockers (64).
+		collision_mask = 69
 	queue_redraw()
 
 func _physics_process(delta: float) -> void:
 	lifetime -= delta
 	if lifetime <= 0.0:
+		queue_free()
+		return
+
+	# Player shots only exist while they remain inside the current camera view.
+	# This prevents damaging enemies the player cannot currently see.
+	if not enemy_owned and _outside_player_view():
 		queue_free()
 		return
 
@@ -51,10 +59,31 @@ func _physics_process(delta: float) -> void:
 			if enemy_owned and body.is_in_group("player"):
 				body.take_damage(damage, direction * 320.0 + Vector2.UP * 80.0)
 			elif not enemy_owned and body.is_in_group("enemies"):
-				body.take_damage(damage, direction * 180.0)
-				if core_gain_on_hit > 0.0 and is_instance_valid(source_player) and source_player.has_method("add_core"):
-					source_player.add_core(core_gain_on_hit)
+				# Damage only if the target is actually in the player's current field of view.
+				# A small margin counts partially visible enemy bodies as visible.
+				if _point_in_player_view(body.global_position, 42.0):
+					body.take_damage(damage, direction * 180.0)
+					if core_gain_on_hit > 0.0 and is_instance_valid(source_player) and source_player.has_method("add_core"):
+						source_player.add_core(core_gain_on_hit)
 		queue_free()
+
+func _outside_player_view() -> bool:
+	return not _point_in_player_view(global_position, 0.0)
+
+func _point_in_player_view(point: Vector2, margin_value: float) -> bool:
+	var camera := get_viewport().get_camera_2d()
+	if not is_instance_valid(camera):
+		return true
+	var viewport_size := get_viewport().get_visible_rect().size
+	var zoom := camera.zoom
+	var half_size := Vector2(
+		viewport_size.x / maxf(zoom.x, 0.001),
+		viewport_size.y / maxf(zoom.y, 0.001)
+	) * 0.5
+	var margin := Vector2(margin_value, margin_value)
+	var center := camera.get_screen_center_position()
+	var visible_rect := Rect2(center - half_size - margin, half_size * 2.0 + margin * 2.0)
+	return visible_rect.has_point(point)
 
 func _draw() -> void:
 	if special_visual and not enemy_owned:

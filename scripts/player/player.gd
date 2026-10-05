@@ -45,8 +45,8 @@ var using_gamepad := false
 var aim_direction := Vector2.RIGHT
 var aim_deadzone := 0.28
 
-# Special system: 3 segments, one segment per special.
-var core_max := 3.0
+# Special system: 5 CORE charges maximum, one charge per special.
+var core_max := 5.0
 var core_energy := 1.0
 var special_dir_buffer := Vector2.ZERO
 var special_dir_left := 0.0
