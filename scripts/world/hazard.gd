@@ -1,6 +1,9 @@
 extends Area2D
 
 @export var damage := 1
+@export var contact_check_interval := 0.08
+
+var contact_check_left := 0.0
 
 func _ready() -> void:
 	add_to_group("hazards")
@@ -8,9 +11,14 @@ func _ready() -> void:
 	collision_mask = 2
 	body_entered.connect(_on_body_entered)
 
-func _physics_process(_delta: float) -> void:
-	# Keep attempting damage while the player remains on the spikes.
-	# Player invulnerability controls the actual damage cadence.
+func _physics_process(delta: float) -> void:
+	# Re-check contact several times per second. take_damage() owns the player's
+	# invulnerability window, so a player who remains on the spikes is damaged
+	# again as soon as that window ends instead of becoming permanently safe.
+	contact_check_left = maxf(contact_check_left - delta, 0.0)
+	if contact_check_left > 0.0:
+		return
+	contact_check_left = contact_check_interval
 	for body in get_overlapping_bodies():
 		_damage_body(body)
 
