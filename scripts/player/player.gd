@@ -45,8 +45,8 @@ var using_gamepad := false
 var aim_direction := Vector2.RIGHT
 var aim_deadzone := 0.28
 
-# Special system: 5 CORE charges maximum, one charge per special.
-var core_max := 5.0
+# Special system: 3 CORE charges maximum; each special activation costs one.
+var core_max := 3.0
 var core_energy := 1.0
 var special_dir_buffer := Vector2.ZERO
 var special_dir_left := 0.0
@@ -99,10 +99,13 @@ func _setup_input_actions() -> void:
 	_add_joy_axis("aim_down", JOY_AXIS_RIGHT_Y, 1.0)
 
 	_ensure_action("special", 0.2)
+	_ensure_action("special_alt", 0.2)
 	_ensure_action("special_up", 0.2)
 	_ensure_action("special_down", 0.60)
 	_add_key("special", KEY_Q)
 	_add_joy_button("special", JOY_BUTTON_Y)
+	_add_key("special_alt", KEY_E)
+	_add_joy_button("special_alt", JOY_BUTTON_LEFT_SHOULDER)
 	_add_key("special_up", KEY_W)
 	_add_key("special_up", KEY_UP)
 	_add_key("special_down", KEY_S)
@@ -181,6 +184,8 @@ func _physics_process(delta: float) -> void:
 
 	if Input.is_action_just_pressed("special"):
 		_try_special()
+	if Input.is_action_just_pressed("special_alt"):
+		_nova_pulse()
 
 	if phase_rush_left > 0.0:
 		phase_rush_left -= delta
@@ -291,6 +296,16 @@ func _ground_burst() -> void:
 	var bullet = _spawn_player_projectile(dir, 3, 900.0, true, 0.0)
 	bullet.global_position = global_position + Vector2(facing * 38.0, 15.0)
 	special_used.emit("SPECIAL // GROUND BURST")
+
+func _nova_pulse() -> void:
+	if not _spend_core():
+		special_used.emit("CORE EMPTY")
+		return
+	for i in range(12):
+		var dir := Vector2.RIGHT.rotated(TAU * float(i) / 12.0)
+		var bullet = _spawn_player_projectile(dir, 1, 900.0, true, 0.0)
+		bullet.lifetime = 0.32
+	special_used.emit("SPECIAL // NOVA PULSE")
 
 func _start_phase_rush() -> void:
 	if not _spend_core():

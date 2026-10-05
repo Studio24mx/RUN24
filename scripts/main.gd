@@ -382,9 +382,9 @@ func _update_controls(gamepad: bool) -> void:
 	if not is_instance_valid(help_label):
 		return
 	if gamepad:
-		help_label.text = "L-STICK/DPAD MOVER · A/CROSS SALTAR · B/CIRCLE/RB DASH · R-STICK APUNTAR · RT/R2 DISPARAR\nY/TRIANGLE ESPECIAL · ↓ BAJAR PLATAFORMA · ↓+Y GROUND BURST · DASH+Y PHASE RUSH"
+		help_label.text = "L-STICK/DPAD MOVER · A/CROSS SALTAR · B/CIRCLE/RB DASH · R-STICK APUNTAR · RT/R2 DISPARAR · ↓ BAJAR\nY ESPECIAL · ↑+Y SKY · ↓+Y GROUND · DASH+Y PHASE · LB NOVA PULSE"
 	else:
-		help_label.text = "A/D MOVER · ESPACIO SALTAR · SHIFT DASH · MOUSE DISPARAR/APUNTAR\nQ ESPECIAL · S/↓ BAJAR PLATAFORMA · S+Q GROUND BURST · DASH+Q PHASE RUSH"
+		help_label.text = "A/D MOVER · ESPACIO SALTAR · SHIFT DASH · MOUSE DISPARAR/APUNTAR · S/↓ BAJAR\nQ ESPECIAL · W+Q SKY · S+Q GROUND · DASH+Q PHASE · E NOVA PULSE"
 
 func _update_health(current: int, maximum: int) -> void:
 	if is_instance_valid(health_label):
