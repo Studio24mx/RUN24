@@ -38,6 +38,9 @@ jobs:
           mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
           cp -r templates/templates/* "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
 
+      - name: Import project assets
+        run: godot --headless --editor --path . --quit-after 60
+
       - name: Validate project
         run: godot --headless --path . --quit-after 60
 
