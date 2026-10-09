@@ -41,6 +41,9 @@ jobs:
       - name: Validate project
         run: godot --headless --path . --quit-after 60
 
+      - name: Smoke test progression
+        run: godot --headless --path . --script res://tests/smoke_test.gd
+
       - name: Export Web
         shell: bash
         run: |
