@@ -87,14 +87,14 @@ func _point_in_player_view(point: Vector2, margin_value: float) -> bool:
 
 func _draw() -> void:
 	if special_visual and not enemy_owned:
-		var c := Color(1.0, 0.72, 0.18, 1.0)
+		var c := Color(0.95, 0.61, 0.08, 1.0)
 		draw_circle(Vector2.ZERO, 9.0, Color(0.04, 0.04, 0.09, 0.95))
 		draw_circle(Vector2.ZERO, 7.0, c)
 		draw_circle(Vector2.ZERO, 3.0, Color.WHITE)
 		draw_line(-direction * 17.0, Vector2.ZERO, c, 5.0)
 		return
 
-	var c := Color(1.0, 0.32, 0.62, 1.0) if enemy_owned else Color(0.25, 0.95, 1.0, 1.0)
+	var c := Color(0.85, 0.12, 0.29, 1.0) if enemy_owned else Color(0.20, 0.84, 0.78, 1.0)
 	draw_circle(Vector2.ZERO, 7.0, c)
 	draw_circle(Vector2.ZERO, 3.0, Color.WHITE)
 	draw_line(-direction * 13.0, Vector2.ZERO, c, 4.0)

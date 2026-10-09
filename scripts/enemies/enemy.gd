@@ -108,37 +108,81 @@ func _die() -> void:
 
 func _draw() -> void:
 	var ratio := clampf(float(health) / float(max_health), 0.0, 1.0)
+	var obsidian := Color(0.035, 0.045, 0.065, 1.0)
+	var bone := Color(0.95, 0.90, 0.82, 1.0)
+	var cochineal := Color(0.85, 0.12, 0.29, 1.0)
+	var jade := Color(0.20, 0.84, 0.78, 1.0)
+	var gold := Color(0.95, 0.61, 0.08, 1.0)
+
 	match enemy_type:
 		"walker":
-			draw_circle(Vector2(0, -5), 22.0, Color(1.0, 0.18, 0.55))
-			draw_rect(Rect2(-18, 12, 14, 10), Color(0.12, 0.9, 0.92))
-			draw_rect(Rect2(4, 12, 14, 10), Color(0.12, 0.9, 0.92))
-			draw_circle(Vector2(-7, -9), 4.0, Color.WHITE)
-			draw_circle(Vector2(7, -9), 4.0, Color.WHITE)
+			# SIGNAL HUSK: broken soul reconstructed around a hot red core.
+			draw_circle(Vector2(0, -5), 25.0, Color(cochineal.r, cochineal.g, cochineal.b, 0.10))
+			var torso := PackedVector2Array([
+				Vector2(-20, -10), Vector2(-11, -25), Vector2(9, -27),
+				Vector2(21, -12), Vector2(17, 15), Vector2(-15, 17)
+			])
+			draw_colored_polygon(torso, obsidian)
+			draw_polyline(PackedVector2Array([torso[0], torso[1], torso[2], torso[3], torso[4], torso[5], torso[0]]), cochineal, 2.5)
+			# Bone mask.
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(-12, -24), Vector2(10, -25), Vector2(16, -14),
+				Vector2(8, -4), Vector2(-10, -5), Vector2(-16, -14)
+			]), bone)
+			draw_circle(Vector2(-6, -15), 4.5, obsidian)
+			draw_circle(Vector2(7, -15), 4.5, obsidian)
+			draw_circle(Vector2(0, -3), 6.0, cochineal)
+			draw_circle(Vector2(0, -3), 2.0, Color.WHITE)
+			# Limbs.
+			draw_line(Vector2(-12, 12), Vector2(-17, 30), obsidian, 8.0)
+			draw_line(Vector2(10, 12), Vector2(15, 30), obsidian, 8.0)
+			draw_line(Vector2(-19, 1), Vector2(-30, 10), bone, 5.0)
+			draw_line(Vector2(18, 0), Vector2(31, -6), bone, 5.0)
+			draw_line(Vector2(-17, 30), Vector2(-7, 30), jade, 3.0)
+			draw_line(Vector2(15, 30), Vector2(25, 30), jade, 3.0)
+
 		"turret":
-			var pts := PackedVector2Array([Vector2(-24, 18), Vector2(-20, -18), Vector2(0, -28), Vector2(20, -18), Vector2(24, 18)])
-			draw_colored_polygon(pts, Color(0.15, 0.8, 1.0))
-			draw_rect(Rect2(0, -7, 32, 10), Color(1.0, 0.34, 0.63))
-			draw_circle(Vector2(-6, -7), 5.0, Color.WHITE)
+			# VIGILANTE: shrine/drone hybrid with a single signal eye.
+			draw_circle(Vector2(-2, -4), 32.0, Color(jade.r, jade.g, jade.b, 0.07))
+			var body_pts := PackedVector2Array([
+				Vector2(-26, 18), Vector2(-24, -12), Vector2(-12, -29),
+				Vector2(8, -31), Vector2(22, -16), Vector2(26, 18)
+			])
+			draw_colored_polygon(body_pts, obsidian)
+			draw_polyline(PackedVector2Array([body_pts[0], body_pts[1], body_pts[2], body_pts[3], body_pts[4], body_pts[5], body_pts[0]]), jade, 2.6)
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(-13, -22), Vector2(8, -24), Vector2(15, -14),
+				Vector2(7, -6), Vector2(-10, -7), Vector2(-17, -15)
+			]), bone)
+			draw_circle(Vector2(-1, -15), 8.0, cochineal)
+			draw_circle(Vector2(-1, -15), 3.0, Color.WHITE)
+			# Barrel.
+			draw_rect(Rect2(10, -8, 34, 11), obsidian)
+			draw_rect(Rect2(34, -6, 12, 7), cochineal)
+			draw_line(Vector2(-19, 9), Vector2(-28, 23), gold, 3.0)
+			draw_line(Vector2(17, 9), Vector2(27, 23), gold, 3.0)
+
 		"flyer":
+			# CINTINELA: airborne soul-router with asymmetric spirit wings.
 			var pulse := (sin(hover_time * 5.0) + 1.0) * 0.5
-			# Halo y silueta oscura para separarlo del fondo.
-			draw_circle(Vector2.ZERO, 35.0 + pulse * 3.0, Color(0.2, 0.95, 1.0, 0.09))
-			draw_circle(Vector2.ZERO, 29.0, Color(0.025, 0.03, 0.07, 0.98))
-			# Alas grandes con borde luminoso.
-			var left_wing := PackedVector2Array([Vector2(-20, -3), Vector2(-54, -20), Vector2(-48, 18), Vector2(-22, 10)])
-			var right_wing := PackedVector2Array([Vector2(20, -3), Vector2(54, -20), Vector2(48, 18), Vector2(22, 10)])
-			draw_colored_polygon(left_wing, Color(0.03, 0.04, 0.09))
-			draw_colored_polygon(right_wing, Color(0.03, 0.04, 0.09))
-			draw_polyline(PackedVector2Array([Vector2(-20, -3), Vector2(-54, -20), Vector2(-48, 18), Vector2(-22, 10), Vector2(-20, -3)]), Color(0.15, 0.95, 1.0), 5.0)
-			draw_polyline(PackedVector2Array([Vector2(20, -3), Vector2(54, -20), Vector2(48, 18), Vector2(22, 10), Vector2(20, -3)]), Color(1.0, 0.25, 0.68), 5.0)
-			# Cuerpo con doble contraste.
-			draw_circle(Vector2.ZERO, 25.0, Color(0.04, 0.04, 0.10))
-			draw_circle(Vector2.ZERO, 21.0, Color(1.0, 0.82, 0.12))
-			draw_arc(Vector2.ZERO, 25.0, 0.0, TAU, 28, Color.WHITE, 2.5)
-			draw_circle(Vector2(0, -5), 7.0, Color.WHITE)
-			draw_circle(Vector2(0, -5), 3.5, Color(0.08, 0.08, 0.15))
-			# Marcador inferior para leer su posición durante el combate.
-			draw_polygon(PackedVector2Array([Vector2(-8, 31), Vector2(8, 31), Vector2(0, 42)]), PackedColorArray([Color(1.0, 0.3, 0.65)]))
-	draw_rect(Rect2(-24, -39, 48, 5), Color(0.08, 0.08, 0.12, 0.9))
-	draw_rect(Rect2(-24, -39, 48.0 * ratio, 5), Color(0.25, 1.0, 0.55))
+			draw_circle(Vector2.ZERO, 37.0 + pulse * 4.0, Color(jade.r, jade.g, jade.b, 0.08))
+			var left_wing := PackedVector2Array([Vector2(-15, -4), Vector2(-52, -24), Vector2(-42, 11), Vector2(-19, 17)])
+			var right_wing := PackedVector2Array([Vector2(16, -4), Vector2(50, -17), Vector2(44, 20), Vector2(19, 16)])
+			draw_colored_polygon(left_wing, obsidian)
+			draw_colored_polygon(right_wing, obsidian)
+			draw_polyline(PackedVector2Array([left_wing[0], left_wing[1], left_wing[2], left_wing[3], left_wing[0]]), jade, 3.0)
+			draw_polyline(PackedVector2Array([right_wing[0], right_wing[1], right_wing[2], right_wing[3], right_wing[0]]), cochineal, 3.0)
+			draw_circle(Vector2.ZERO, 24.0, obsidian)
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(-12, -18), Vector2(11, -18), Vector2(17, -3),
+				Vector2(8, 13), Vector2(-9, 13), Vector2(-17, -3)
+			]), bone)
+			draw_circle(Vector2(0, -5), 7.0, cochineal)
+			draw_circle(Vector2(0, -5), 2.5, Color.WHITE)
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(-7, 25), Vector2(7, 25), Vector2(0, 40)
+			]), Color(jade.r, jade.g, jade.b, 0.75))
+
+	# Compact diegetic health trace.
+	draw_rect(Rect2(-24, -42, 48, 4), Color(0.02, 0.025, 0.04, 0.92))
+	draw_rect(Rect2(-24, -42, 48.0 * ratio, 4), cochineal if ratio < 0.5 else jade)

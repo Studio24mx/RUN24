@@ -56,8 +56,8 @@ var phase_rush_duration := 0.18
 var phase_rush_speed := 1250.0
 var phase_hit_ids := {}
 
-@onready var body_visual: Polygon2D = $Body
-@onready var core_visual: Polygon2D = $Core
+@onready var body_visual: Node2D = $VisualRoot
+@onready var core_visual: Polygon2D = $VisualRoot/Core
 
 func _ready() -> void:
 	add_to_group("player")
@@ -487,3 +487,6 @@ func _update_visual() -> void:
 	else:
 		body_visual.scale = body_visual.scale.lerp(Vector2.ONE, 0.3)
 		core_visual.scale = core_visual.scale.lerp(Vector2.ONE, 0.3)
+
+	# Mirror the full cutout so the mask, scarf and weapon follow facing direction.
+	body_visual.scale.x = absf(body_visual.scale.x) * facing

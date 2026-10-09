@@ -5,8 +5,10 @@ const ENEMY_SCENE := preload("res://scenes/enemies/enemy.tscn")
 const BOSS_SCENE := preload("res://scenes/enemies/boss.tscn")
 const PICKUP_SCENE := preload("res://scenes/world/pickup.tscn")
 const HAZARD_SCENE := preload("res://scenes/world/hazard.tscn")
+const XOLO_SCENE := preload("res://scenes/world/xolo.tscn")
 
 var player
+var xolo
 var boss
 var room_counts := {1: 0, 2: 0, 3: 0}
 var gates := {}
@@ -29,13 +31,14 @@ func _ready() -> void:
 	_build_background()
 	_build_world()
 	_spawn_player()
+	_spawn_xolo()
 	_build_hud()
 	_update_controls(player.using_gamepad)
 	_spawn_level_content()
 	_update_health(player.health, player.max_health)
 	_update_core(player.core_energy, player.core_max)
 	_update_weapon("WEAPON: BASIC")
-	_toast("ZONE 01 // SIGNAL DISTRICT")
+	_toast("SIGNAL DISTRICT // LAYER 01")
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(player):
@@ -57,7 +60,7 @@ func _process(delta: float) -> void:
 			boss.activate()
 		boss_bar.visible = true
 		boss_label.visible = true
-		_toast("BOSS // NEON IDOL")
+		_toast("BOSS // THE IDOL")
 
 	var x: float = float(player.global_position.x)
 	if x < 1450.0:
@@ -67,7 +70,7 @@ func _process(delta: float) -> void:
 	elif x < 4050.0:
 		room_label.text = "ROOM 3/4  ·  PRESSURE"
 	else:
-		room_label.text = "ROOM 4/4  ·  NEON IDOL"
+		room_label.text = "ROOM 4/4  ·  THE IDOL"
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not level_finished:
@@ -78,21 +81,33 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_tree().reload_current_scene()
 
 func _build_background() -> void:
+	# Signalpunk value blocks: obsidian dominates; jade/cochineal are functional accents.
 	var colors := [
-		Color(0.025, 0.03, 0.07),
-		Color(0.045, 0.025, 0.08),
-		Color(0.025, 0.055, 0.075),
-		Color(0.07, 0.025, 0.065)
+		Color(0.018, 0.024, 0.038),
+		Color(0.028, 0.022, 0.045),
+		Color(0.018, 0.040, 0.046),
+		Color(0.045, 0.018, 0.035)
 	]
 	for i in range(4):
 		_add_back_rect(Vector2(650.0 + i * 1300.0, 360.0), Vector2(1300, 720), colors[i])
-	for x in range(160, 5150, 260):
-		var light := Polygon2D.new()
-		light.polygon = PackedVector2Array([Vector2(-3, -42), Vector2(3, -42), Vector2(3, 42), Vector2(-3, 42)])
-		light.color = Color(0.1, 0.75, 0.9, 0.15) if int(x / 260) % 2 == 0 else Color(1.0, 0.2, 0.6, 0.12)
-		light.position = Vector2(x, 250 + (x % 3) * 35)
-		light.z_index = -8
-		add_child(light)
+
+	# Monumental signal suns anchor the composition without competing with combat.
+	_add_back_circle(Vector2(920, 235), 190.0, Color(0.85, 0.12, 0.29, 0.12), -9)
+	_add_back_circle(Vector2(3660, 220), 240.0, Color(0.85, 0.12, 0.29, 0.10), -9)
+
+	# Layered brutalist skyline built from reusable silhouettes.
+	for x in range(90, 5180, 170):
+		var height := 90.0 + float((x * 7) % 190)
+		var width := 92.0 + float((x * 3) % 70)
+		_add_back_rect(Vector2(float(x), 620.0 - height * 0.5), Vector2(width, height), Color(0.035, 0.050, 0.065, 0.92))
+		if int(x / 170) % 3 == 0:
+			_add_back_rect(Vector2(float(x), 582.0 - height), Vector2(5, 72), Color(0.20, 0.84, 0.78, 0.16))
+
+	for tower_x in [560.0, 1980.0, 3480.0, 4700.0]:
+		_add_signal_tower(Vector2(tower_x, 430.0))
+
+	for marker_x in [1180.0, 2860.0, 4260.0]:
+		_add_signal_marker(Vector2(marker_x, 300.0), 54.0)
 
 func _add_back_rect(pos: Vector2, size: Vector2, color: Color) -> void:
 	var poly := Polygon2D.new()
@@ -107,9 +122,72 @@ func _add_back_rect(pos: Vector2, size: Vector2, color: Color) -> void:
 	poly.z_index = -10
 	add_child(poly)
 
+func _add_back_circle(pos: Vector2, radius: float, color: Color, layer: int) -> void:
+	var poly := Polygon2D.new()
+	var points := PackedVector2Array()
+	for i in range(40):
+		points.append(Vector2.RIGHT.rotated(TAU * float(i) / 40.0) * radius)
+	poly.polygon = points
+	poly.position = pos
+	poly.color = color
+	poly.z_index = layer
+	add_child(poly)
+
+func _add_signal_tower(pos: Vector2) -> void:
+	var tower := Polygon2D.new()
+	tower.polygon = PackedVector2Array([
+		Vector2(-42, 170), Vector2(-34, -110), Vector2(-13, -154),
+		Vector2(13, -154), Vector2(34, -110), Vector2(42, 170)
+	])
+	tower.position = pos
+	tower.color = Color(0.025, 0.034, 0.050, 0.96)
+	tower.z_index = -7
+	add_child(tower)
+
+	var spine := Line2D.new()
+	spine.points = PackedVector2Array([Vector2(0, 145), Vector2(0, -135)])
+	spine.width = 4.0
+	spine.default_color = Color(0.20, 0.84, 0.78, 0.20)
+	spine.position = pos
+	spine.z_index = -6
+	add_child(spine)
+
+	for y in [-92.0, -35.0, 22.0, 79.0]:
+		var bar := Line2D.new()
+		bar.points = PackedVector2Array([Vector2(-26, y), Vector2(26, y)])
+		bar.width = 3.0
+		bar.default_color = Color(0.85, 0.12, 0.29, 0.18)
+		bar.position = pos
+		bar.z_index = -6
+		add_child(bar)
+
+func _add_signal_marker(pos: Vector2, radius: float) -> void:
+	var ring := Line2D.new()
+	var points := PackedVector2Array()
+	for i in range(33):
+		points.append(Vector2.RIGHT.rotated(TAU * float(i) / 32.0) * radius)
+	ring.points = points
+	ring.width = 3.0
+	ring.default_color = Color(0.85, 0.12, 0.29, 0.18)
+	ring.position = pos
+	ring.z_index = -6
+	add_child(ring)
+
+	var cross := Line2D.new()
+	cross.points = PackedVector2Array([
+		Vector2(-radius * 0.7, 0), Vector2(radius * 0.7, 0),
+		Vector2.ZERO, Vector2(0, -radius * 0.7),
+		Vector2(0, radius * 0.7)
+	])
+	cross.width = 2.0
+	cross.default_color = Color(0.95, 0.88, 0.78, 0.13)
+	cross.position = pos
+	cross.z_index = -6
+	add_child(cross)
+
 func _build_world() -> void:
-	var floor_color := Color(0.12, 0.15, 0.24)
-	var platform_color := Color(0.20, 0.25, 0.38)
+	var floor_color := Color(0.055, 0.065, 0.090)
+	var platform_color := Color(0.080, 0.110, 0.140)
 
 	_make_platform(Vector2(725, 680), Vector2(1450, 80), floor_color)
 	_make_platform(Vector2(1725, 680), Vector2(550, 80), floor_color)
@@ -143,9 +221,9 @@ func _build_world() -> void:
 	_spawn_hazard(Vector2(3390, 628), 0.9)
 	_spawn_hazard(Vector2(3895, 628), 0.7)
 
-	_create_gate(1, 1450.0, Color(0.2, 0.9, 1.0, 0.85))
-	_create_gate(2, 3100.0, Color(1.0, 0.72, 0.18, 0.85))
-	_create_gate(3, 4050.0, Color(1.0, 0.24, 0.68, 0.85))
+	_create_gate(1, 1450.0, Color(0.20, 0.84, 0.78, 0.88))
+	_create_gate(2, 3100.0, Color(0.95, 0.61, 0.08, 0.88))
+	_create_gate(3, 4050.0, Color(0.85, 0.12, 0.29, 0.90))
 
 func _make_platform(pos: Vector2, size: Vector2, color: Color, one_way: bool = false) -> StaticBody2D:
 	var body := StaticBody2D.new()
@@ -191,7 +269,7 @@ func _make_platform(pos: Vector2, size: Vector2, color: Color, one_way: bool = f
 	var edge := Line2D.new()
 	edge.points = PackedVector2Array([Vector2(-size.x * 0.5, -size.y * 0.5), Vector2(size.x * 0.5, -size.y * 0.5)])
 	edge.width = 3.0
-	edge.default_color = Color(0.2, 0.85, 0.95, 0.55)
+	edge.default_color = Color(0.20, 0.84, 0.78, 0.68)
 	body.add_child(edge)
 
 	add_child(body)
@@ -231,6 +309,12 @@ func _spawn_player() -> void:
 	player.special_used.connect(_toast)
 	player.input_scheme_changed.connect(_update_controls)
 	player.died.connect(_on_player_died)
+
+func _spawn_xolo() -> void:
+	xolo = XOLO_SCENE.instantiate()
+	add_child(xolo)
+	xolo.player = player
+	xolo.global_position = player.global_position + Vector2(-72, -18)
 
 func _spawn_level_content() -> void:
 	_spawn_enemy("walker", Vector2(640, 570), 1)
@@ -304,21 +388,55 @@ func _build_hud() -> void:
 	hud.layer = 20
 	add_child(hud)
 
+	var top_panel := ColorRect.new()
+	top_panel.position = Vector2.ZERO
+	top_panel.size = Vector2(1280, 62)
+	top_panel.color = Color(0.015, 0.020, 0.032, 0.90)
+	hud.add_child(top_panel)
+
+	var top_accent := ColorRect.new()
+	top_accent.position = Vector2(0, 58)
+	top_accent.size = Vector2(1280, 3)
+	top_accent.color = Color(0.20, 0.84, 0.78, 0.52)
+	hud.add_child(top_accent)
+
+	var bottom_panel := ColorRect.new()
+	bottom_panel.position = Vector2(0, 646)
+	bottom_panel.size = Vector2(1280, 74)
+	bottom_panel.color = Color(0.015, 0.020, 0.032, 0.86)
+	hud.add_child(bottom_panel)
+
+	var bottom_accent := ColorRect.new()
+	bottom_accent.position = Vector2(0, 646)
+	bottom_accent.size = Vector2(1280, 2)
+	bottom_accent.color = Color(0.85, 0.12, 0.29, 0.45)
+	hud.add_child(bottom_accent)
+
+	var signal_tag := Label.new()
+	signal_tag.position = Vector2(570, 39)
+	signal_tag.size = Vector2(160, 20)
+	signal_tag.text = "RUN24 // SIGNALPUNK"
+	signal_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	signal_tag.add_theme_font_size_override("font_size", 11)
+	signal_tag.add_theme_color_override("font_color", Color(0.95, 0.90, 0.82, 0.56))
+	hud.add_child(signal_tag)
+
 	health_label = Label.new()
 	health_label.position = Vector2(24, 16)
 	health_label.add_theme_font_size_override("font_size", 25)
+	health_label.add_theme_color_override("font_color", Color(0.95, 0.90, 0.82))
 	hud.add_child(health_label)
 
 	weapon_label = Label.new()
 	weapon_label.position = Vector2(210, 18)
 	weapon_label.add_theme_font_size_override("font_size", 21)
-	weapon_label.add_theme_color_override("font_color", Color(0.25, 0.95, 1.0))
+	weapon_label.add_theme_color_override("font_color", Color(0.20, 0.84, 0.78))
 	hud.add_child(weapon_label)
 
 	core_label = Label.new()
 	core_label.position = Vector2(505, 18)
 	core_label.add_theme_font_size_override("font_size", 20)
-	core_label.add_theme_color_override("font_color", Color(1.0, 0.78, 0.18))
+	core_label.add_theme_color_override("font_color", Color(0.95, 0.61, 0.08))
 	hud.add_child(core_label)
 
 	room_label = Label.new()
@@ -326,14 +444,14 @@ func _build_hud() -> void:
 	room_label.size = Vector2(320, 36)
 	room_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	room_label.add_theme_font_size_override("font_size", 19)
-	room_label.add_theme_color_override("font_color", Color(1.0, 0.35, 0.68))
+	room_label.add_theme_color_override("font_color", Color(0.85, 0.12, 0.29))
 	hud.add_child(room_label)
 
 	help_label = Label.new()
 	help_label.position = Vector2(22, 654)
 	help_label.size = Vector2(1180, 60)
 	help_label.add_theme_font_size_override("font_size", 13)
-	help_label.add_theme_color_override("font_color", Color(0.72, 0.78, 0.9, 0.9))
+	help_label.add_theme_color_override("font_color", Color(0.78, 0.82, 0.84, 0.92))
 	hud.add_child(help_label)
 
 	toast_label = Label.new()
@@ -341,15 +459,16 @@ func _build_hud() -> void:
 	toast_label.size = Vector2(600, 48)
 	toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	toast_label.add_theme_font_size_override("font_size", 25)
-	toast_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.3))
+	toast_label.add_theme_color_override("font_color", Color(0.95, 0.61, 0.08))
 	hud.add_child(toast_label)
 
 	boss_label = Label.new()
 	boss_label.position = Vector2(390, 88)
 	boss_label.size = Vector2(500, 32)
 	boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	boss_label.text = "NEON IDOL"
+	boss_label.text = "THE IDOL"
 	boss_label.add_theme_font_size_override("font_size", 18)
+	boss_label.add_theme_color_override("font_color", Color(0.85, 0.12, 0.29))
 	boss_label.visible = false
 	hud.add_child(boss_label)
 
@@ -360,6 +479,17 @@ func _build_hud() -> void:
 	boss_bar.max_value = 80
 	boss_bar.value = 80
 	boss_bar.show_percentage = false
+	var boss_bg := StyleBoxFlat.new()
+	boss_bg.bg_color = Color(0.025, 0.032, 0.050, 0.94)
+	boss_bg.border_width_left = 2
+	boss_bg.border_width_top = 2
+	boss_bg.border_width_right = 2
+	boss_bg.border_width_bottom = 2
+	boss_bg.border_color = Color(0.95, 0.90, 0.82, 0.45)
+	var boss_fill := StyleBoxFlat.new()
+	boss_fill.bg_color = Color(0.85, 0.12, 0.29, 0.92)
+	boss_bar.add_theme_stylebox_override("background", boss_bg)
+	boss_bar.add_theme_stylebox_override("fill", boss_fill)
 	boss_bar.visible = false
 	hud.add_child(boss_bar)
 
@@ -388,7 +518,7 @@ func _update_controls(gamepad: bool) -> void:
 
 func _update_health(current: int, maximum: int) -> void:
 	if is_instance_valid(health_label):
-		health_label.text = "HP  %d / %d" % [current, maximum]
+		health_label.text = "LIFE  %d / %d" % [current, maximum]
 
 func _update_core(current: float, maximum: float) -> void:
 	if not is_instance_valid(core_label):

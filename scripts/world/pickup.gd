@@ -24,11 +24,11 @@ func _on_body_entered(body: Node) -> void:
 		queue_free()
 
 func _draw() -> void:
-	var c := Color(0.25, 1.0, 0.5)
+	var c := Color(0.20, 0.84, 0.78)
 	if kind == "rapid":
-		c = Color(1.0, 0.78, 0.15)
+		c = Color(0.95, 0.61, 0.08)
 	elif kind == "spread":
-		c = Color(1.0, 0.22, 0.72)
+		c = Color(0.85, 0.12, 0.29)
 
 	var pulse := (sin(time * 5.0) + 1.0) * 0.5
 	draw_circle(Vector2.ZERO, 34.0 + pulse * 5.0, Color(c.r, c.g, c.b, 0.10))
