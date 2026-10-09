@@ -3,8 +3,10 @@ extends CharacterBody2D
 signal died(enemy, room_id)
 
 const PROJECTILE_SCENE := preload("res://scenes/combat/projectile.tscn")
+const FX_BURST_SCENE := preload("res://scenes/fx/burst.tscn")
+const CHARGER_TEXTURE := preload("res://art/exports/enemies/charger.svg")
 
-@export_enum("walker", "turret", "flyer") var enemy_type := "walker"
+@export_enum("walker", "turret", "flyer", "charger") var enemy_type := "walker"
 @export var room_id := 1
 
 var max_health := 4
@@ -16,6 +18,9 @@ var gravity := 2200.0
 var dead := false
 var hover_time := 0.0
 var hover_origin_y := 0.0
+var charge_left := 0.0
+var charge_cooldown_left := 1.0
+var facing := 1.0
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -34,6 +39,20 @@ func _ready() -> void:
 			max_health = 5
 			move_speed = 105.0
 			fire_interval = 1.55
+		"charger":
+			max_health = 18
+			move_speed = 90.0
+			fire_interval = 99.0
+			var charger_art := Sprite2D.new()
+			charger_art.name = "ChargerArt"
+			charger_art.texture = CHARGER_TEXTURE
+			charger_art.scale = Vector2(0.38, 0.38)
+			charger_art.position = Vector2(0, -5)
+			charger_art.z_index = -1
+			add_child(charger_art)
+			var charger_shape = $CollisionShape2D.shape.duplicate()
+			charger_shape.size = Vector2(72, 58)
+			$CollisionShape2D.shape = charger_shape
 	health = max_health
 	hover_origin_y = global_position.y
 	queue_redraw()
@@ -66,19 +85,41 @@ func _physics_process(delta: float) -> void:
 			hover_time += delta
 			queue_redraw()
 			var target_y := clampf(hover_origin_y + sin(hover_time * 2.2) * 42.0, 105.0, 300.0)
-			global_position.y = lerpf(global_position.y, target_y, 3.0 * delta)
 			var dx: float = player.global_position.x - global_position.x
-			if absf(dx) > 250.0:
-				global_position.x += signf(dx) * move_speed * delta
+			velocity.y = (target_y - global_position.y) * 3.0
+			velocity.x = signf(dx) * move_speed if absf(dx) > 250.0 else 0.0
+			move_and_slide()
 			if global_position.distance_to(player.global_position) < 850.0 and fire_timer <= 0.0:
 				_fire_at(player.global_position, 420.0)
 				fire_timer = fire_interval
 			_damage_player_on_contact(player)
+		"charger":
+			if not is_on_floor():
+				velocity.y += gravity * delta
+			charge_cooldown_left = maxf(charge_cooldown_left - delta, 0.0)
+			var dx: float = player.global_position.x - global_position.x
+			if absf(dx) > 2.0:
+				facing = signf(dx)
+			if charge_left > 0.0:
+				charge_left = maxf(charge_left - delta, 0.0)
+				velocity.x = facing * 610.0
+			else:
+				velocity.x = move_toward(velocity.x, facing * move_speed, 650.0 * delta)
+				if charge_cooldown_left <= 0.0 and absf(dx) < 650.0 and absf(player.global_position.y - global_position.y) < 130.0:
+					charge_left = 0.58
+					charge_cooldown_left = 2.15
+					Sfx.play("dash", -5.0)
+			move_and_slide()
+			var charger_art := get_node_or_null("ChargerArt") as Sprite2D
+			if is_instance_valid(charger_art):
+				charger_art.scale.x = absf(charger_art.scale.x) * facing
+			_damage_player_on_contact(player, 2, 66.0, 620.0)
+			queue_redraw()
 
-func _damage_player_on_contact(player: Node2D) -> void:
-	if global_position.distance_to(player.global_position) < 48.0 and player.has_method("take_damage"):
-		var push := (player.global_position - global_position).normalized() * 420.0 + Vector2.UP * 130.0
-		player.take_damage(1, push)
+func _damage_player_on_contact(player: Node2D, amount: int = 1, radius: float = 48.0, push_force: float = 420.0) -> void:
+	if global_position.distance_to(player.global_position) < radius and player.has_method("take_damage"):
+		var push := (player.global_position - global_position).normalized() * push_force + Vector2.UP * 130.0
+		player.take_damage(amount, push)
 
 func _fire_at(target: Vector2, projectile_speed: float) -> void:
 	var bullet = PROJECTILE_SCENE.instantiate()
@@ -103,6 +144,10 @@ func _die() -> void:
 	if dead:
 		return
 	dead = true
+	var fx = FX_BURST_SCENE.instantiate()
+	get_tree().current_scene.add_child(fx)
+	fx.global_position = global_position
+	fx.setup(Color(0.85, 0.12, 0.29), 52.0 if enemy_type == "charger" else 32.0, 0.28, 10)
 	died.emit(self, room_id)
 	queue_free()
 
@@ -183,6 +228,16 @@ func _draw() -> void:
 				Vector2(-7, 25), Vector2(7, 25), Vector2(0, 40)
 			]), Color(jade.r, jade.g, jade.b, 0.75))
 
+		"charger":
+			var charge_pulse := (sin(Time.get_ticks_msec() * 0.018) + 1.0) * 0.5
+			var aura_alpha := 0.16 + charge_pulse * 0.16 if charge_left > 0.0 else 0.06
+			draw_circle(Vector2(0, -4), 58.0 + charge_pulse * 5.0, Color(cochineal.r, cochineal.g, cochineal.b, aura_alpha))
+			if charge_left > 0.0:
+				draw_line(Vector2(-facing * 78.0, -5), Vector2(-facing * 42.0, -5), cochineal, 7.0)
+				draw_line(Vector2(-facing * 92.0, 8), Vector2(-facing * 55.0, 8), gold, 4.0)
+
 	# Compact diegetic health trace.
-	draw_rect(Rect2(-24, -42, 48, 4), Color(0.02, 0.025, 0.04, 0.92))
-	draw_rect(Rect2(-24, -42, 48.0 * ratio, 4), cochineal if ratio < 0.5 else jade)
+	var bar_width := 72.0 if enemy_type == "charger" else 48.0
+	var bar_y := -58.0 if enemy_type == "charger" else -42.0
+	draw_rect(Rect2(-bar_width * 0.5, bar_y, bar_width, 4), Color(0.02, 0.025, 0.04, 0.92))
+	draw_rect(Rect2(-bar_width * 0.5, bar_y, bar_width * ratio, 4), cochineal if ratio < 0.5 else jade)

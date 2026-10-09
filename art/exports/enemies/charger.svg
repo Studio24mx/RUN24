@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="180" viewBox="0 0 240 180">
+<title>RUN24 Cargador</title>
+<g stroke-linejoin="round" stroke-linecap="round">
+<path d="M48 82L70 45L128 32L184 55L206 96L188 139L128 153L67 140L38 111Z" fill="#0B0D14" stroke="#D92E5B" stroke-width="7"/>
+<path d="M72 62L112 43L147 51L163 74L146 98L94 101L66 84Z" fill="#F2E7D3" stroke="#11151F" stroke-width="5"/>
+<circle cx="123" cy="74" r="15" fill="#D92E5B"/><circle cx="123" cy="74" r="6" fill="#FFFFFF"/>
+<path d="M53 90L25 77L16 94L39 112Z" fill="#11151F" stroke="#D92E5B" stroke-width="6"/>
+<path d="M194 81L222 69L231 89L207 105Z" fill="#11151F" stroke="#D92E5B" stroke-width="6"/>
+<path d="M67 130L85 153L70 171L45 151Z" fill="#11151F" stroke="#35D5C8" stroke-width="5"/>
+<path d="M169 132L190 151L177 171L151 153Z" fill="#11151F" stroke="#35D5C8" stroke-width="5"/>
+<path d="M88 111L112 119L102 139L78 132Z" fill="#31204F"/>
+<path d="M151 108L177 116L168 136L142 128Z" fill="#31204F"/>
+<path d="M91 137H154" stroke="#F3A712" stroke-width="5"/>
+<path d="M62 77L45 55M184 72L202 51" stroke="#F3A712" stroke-width="5"/>
+<circle cx="43" cy="51" r="5" fill="#F3A712"/><circle cx="204" cy="48" r="5" fill="#F3A712"/>
+</g></svg>

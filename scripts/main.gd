@@ -7,14 +7,29 @@ const PICKUP_SCENE := preload("res://scenes/world/pickup.tscn")
 const HAZARD_SCENE := preload("res://scenes/world/hazard.tscn")
 const XOLO_SCENE := preload("res://scenes/world/xolo.tscn")
 
+const LEVEL_END_X := 8000.0
+const BOSS_TRIGGER_X := 6920.0
+const BOSS_GATE_X := 6800.0
+
 var player
 var xolo
 var boss
-var room_counts := {1: 0, 2: 0, 3: 0}
+var room_counts := {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
 var gates := {}
 var gate_reconcile_left := 0.0
 var boss_started := false
 var level_finished := false
+var run_started := false
+var tutorial_stage := 0
+var checkpoint_stage := 0
+
+var run_seconds := 0.0
+var stat_shots := 0
+var stat_hits := 0
+var stat_damage := 0
+var stat_kills := 0
+var stat_specials := 0
+var stat_pickups := 0
 
 var health_label: Label
 var weapon_label: Label
@@ -26,8 +41,14 @@ var boss_bar: ProgressBar
 var end_overlay: ColorRect
 var end_label: Label
 var help_label: Label
+var start_overlay: ColorRect
+var start_label: Label
+var minimap_dot: ColorRect
+var minimap_origin := Vector2(760, 20)
+var minimap_width := 150.0
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_background()
 	_build_world()
 	_spawn_player()
@@ -38,47 +59,116 @@ func _ready() -> void:
 	_update_health(player.health, player.max_health)
 	_update_core(player.core_energy, player.core_max)
 	_update_weapon("WEAPON: BASIC")
-	_toast("SIGNAL DISTRICT // LAYER 01")
+	_update_minimap()
+	get_tree().paused = true
 
 func _process(delta: float) -> void:
-	if not is_instance_valid(player):
+	if not is_instance_valid(player) or not run_started or level_finished:
 		return
 
-	if not level_finished and player.global_position.y > 860.0:
+	run_seconds += delta
+
+	if player.global_position.y > 860.0:
 		player.fall_respawn()
-		_toast("VOID HIT // -1 HP")
+		_toast("VOID HIT // -1 LIFE")
 
 	gate_reconcile_left -= delta
 	if gate_reconcile_left <= 0.0:
 		gate_reconcile_left = 0.25
 		_reconcile_room_gates()
 
-	if not boss_started and player.global_position.x > 4180.0:
+	var x: float = float(player.global_position.x)
+	_update_tutorial(x)
+	_update_checkpoints(x)
+	_update_minimap()
+
+	if not boss_started and x > BOSS_TRIGGER_X:
 		boss_started = true
-		_create_gate(99, 4050.0, Color(1.0, 0.18, 0.52, 0.9))
+		_create_gate(99, BOSS_GATE_X, Color(0.85, 0.12, 0.29, 0.94))
 		if is_instance_valid(boss):
 			boss.activate()
 		boss_bar.visible = true
 		boss_label.visible = true
-		_toast("BOSS // THE IDOL")
+		Sfx.play("boss", -3.0)
+		_toast("THE IDOL // FIRST NODE OF THE DEAD-NET")
 
-	var x: float = float(player.global_position.x)
 	if x < 1450.0:
-		room_label.text = "ROOM 1/4  ·  ENTRY"
+		room_label.text = "01/06 · ENTRY"
 	elif x < 3100.0:
-		room_label.text = "ROOM 2/4  ·  CIRCUIT"
-	elif x < 4050.0:
-		room_label.text = "ROOM 3/4  ·  PRESSURE"
+		room_label.text = "02/06 · CIRCUIT"
+	elif x < 4550.0:
+		room_label.text = "03/06 · PRESSURE"
+	elif x < 5750.0:
+		room_label.text = "04/06 · TRANSIT"
+	elif x < BOSS_GATE_X:
+		room_label.text = "05/06 · CARGADOR"
 	else:
-		room_label.text = "ROOM 4/4  ·  THE IDOL"
+		room_label.text = "06/06 · THE IDOL"
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not level_finished:
+	var pressed := false
+	if event is InputEventKey:
+		pressed = event.pressed and not event.echo
+	elif event is InputEventMouseButton:
+		pressed = event.pressed
+	elif event is InputEventJoypadButton:
+		pressed = event.pressed
+
+	if not run_started:
+		if pressed:
+			_start_run()
 		return
-	if event is InputEventKey and event.pressed and event.keycode == KEY_R:
-		get_tree().reload_current_scene()
-	elif event is InputEventJoypadButton and event.pressed and event.button_index in [JOY_BUTTON_A, JOY_BUTTON_START]:
-		get_tree().reload_current_scene()
+
+	if level_finished:
+		if event is InputEventKey and event.pressed and event.keycode == KEY_R:
+			get_tree().paused = false
+			get_tree().reload_current_scene()
+		elif event is InputEventJoypadButton and event.pressed and event.button_index in [JOY_BUTTON_A, JOY_BUTTON_START]:
+			get_tree().paused = false
+			get_tree().reload_current_scene()
+		return
+
+	if (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE) or (event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_START):
+		_toggle_pause()
+
+func _start_run() -> void:
+	run_started = true
+	start_overlay.visible = false
+	get_tree().paused = false
+	_toast("MOVE // A-D OR L-STICK  ·  JUMP // SPACE OR A")
+
+func _toggle_pause() -> void:
+	var paused := not get_tree().paused
+	get_tree().paused = paused
+	start_overlay.visible = paused
+	if paused:
+		start_label.text = "SIGNAL PAUSED\n\nESC / START  ·  RESUME"
+	else:
+		start_overlay.visible = false
+
+func _update_tutorial(x: float) -> void:
+	if tutorial_stage == 0 and x > 430.0:
+		tutorial_stage = 1
+		_toast("AIM + FIRE // MOUSE  ·  R-STICK + RT")
+	elif tutorial_stage == 1 and x > 1530.0:
+		tutorial_stage = 2
+		_toast("CORE CHARGES ON HIT // Q OR Y = SPECIAL")
+	elif tutorial_stage == 2 and x > 3150.0:
+		tutorial_stage = 3
+		_toast("DOWN THROUGH PLATFORMS // S OR ↓")
+	elif tutorial_stage == 3 and x > 5820.0:
+		tutorial_stage = 4
+		_toast("ELITE SIGNAL // CARGADOR CHARGES IN A STRAIGHT LINE")
+
+func _update_checkpoints(x: float) -> void:
+	if checkpoint_stage == 0 and x > 3140.0:
+		checkpoint_stage = 1
+		player.set_checkpoint(Vector2(3220, 600))
+		_toast("CHECKPOINT // SIGNAL ANCHORED")
+	elif checkpoint_stage == 1 and x > 5810.0:
+		checkpoint_stage = 2
+		player.set_checkpoint(Vector2(5880, 600))
+		_toast("CHECKPOINT // FINAL UPLINK")
 
 func _build_background() -> void:
 	# Signalpunk value blocks: obsidian dominates; jade/cochineal are functional accents.
@@ -88,26 +178,81 @@ func _build_background() -> void:
 		Color(0.018, 0.040, 0.046),
 		Color(0.045, 0.018, 0.035)
 	]
-	for i in range(4):
-		_add_back_rect(Vector2(650.0 + i * 1300.0, 360.0), Vector2(1300, 720), colors[i])
+	for i in range(6):
+		_add_back_rect(Vector2(650.0 + i * 1300.0, 360.0), Vector2(1300, 720), colors[i % colors.size()])
 
 	# Monumental signal suns anchor the composition without competing with combat.
 	_add_back_circle(Vector2(920, 235), 190.0, Color(0.85, 0.12, 0.29, 0.12), -9)
 	_add_back_circle(Vector2(3660, 220), 240.0, Color(0.85, 0.12, 0.29, 0.10), -9)
+	_add_back_circle(Vector2(6460, 205), 275.0, Color(0.85, 0.12, 0.29, 0.14), -9)
 
 	# Layered brutalist skyline built from reusable silhouettes.
-	for x in range(90, 5180, 170):
+	for x in range(90, 7980, 170):
 		var height := 90.0 + float((x * 7) % 190)
 		var width := 92.0 + float((x * 3) % 70)
 		_add_back_rect(Vector2(float(x), 620.0 - height * 0.5), Vector2(width, height), Color(0.035, 0.050, 0.065, 0.92))
 		if int(x / 170) % 3 == 0:
 			_add_back_rect(Vector2(float(x), 582.0 - height), Vector2(5, 72), Color(0.20, 0.84, 0.78, 0.16))
 
-	for tower_x in [560.0, 1980.0, 3480.0, 4700.0]:
+	for tower_x in [560.0, 1980.0, 3480.0, 4700.0, 5840.0, 7150.0]:
 		_add_signal_tower(Vector2(tower_x, 430.0))
 
-	for marker_x in [1180.0, 2860.0, 4260.0]:
+	for marker_x in [1180.0, 2860.0, 4260.0, 5480.0, 6640.0, 7480.0]:
 		_add_signal_marker(Vector2(marker_x, 300.0), 54.0)
+
+	for fall_x in [1510.0, 3650.0, 5220.0, 7180.0]:
+		_add_signal_fall(Vector2(fall_x, 170.0), 390.0)
+	for banner_x in [310.0, 1740.0, 3370.0, 4910.0, 6040.0, 7590.0]:
+		_add_signal_banner(Vector2(banner_x, 270.0))
+	_add_cable(Vector2(70, 155), Vector2(760, 210), 72.0)
+	_add_cable(Vector2(4550, 145), Vector2(5650, 205), 95.0)
+	_add_cable(Vector2(6600, 130), Vector2(7900, 190), 90.0)
+
+func _add_signal_fall(pos: Vector2, height: float) -> void:
+	var glow := Polygon2D.new()
+	glow.polygon = PackedVector2Array([
+		Vector2(-18, 0), Vector2(18, 0), Vector2(28, height), Vector2(-28, height)
+	])
+	glow.position = pos
+	glow.color = Color(0.20, 0.84, 0.78, 0.055)
+	glow.z_index = -7
+	add_child(glow)
+	var core := Line2D.new()
+	core.points = PackedVector2Array([Vector2.ZERO, Vector2(0, height)])
+	core.position = pos
+	core.width = 5.0
+	core.default_color = Color(0.20, 0.84, 0.78, 0.26)
+	core.z_index = -6
+	add_child(core)
+
+func _add_signal_banner(pos: Vector2) -> void:
+	var cloth := Polygon2D.new()
+	cloth.polygon = PackedVector2Array([Vector2(-18, -45), Vector2(18, -45), Vector2(15, 45), Vector2(-14, 39)])
+	cloth.position = pos
+	cloth.color = Color(0.32, 0.035, 0.09, 0.72)
+	cloth.z_index = -5
+	add_child(cloth)
+	var glyph := Line2D.new()
+	glyph.points = PackedVector2Array([Vector2(0, -25), Vector2(0, 24), Vector2(-9, 11), Vector2(9, 11), Vector2(0, 24)])
+	glyph.position = pos
+	glyph.width = 2.5
+	glyph.default_color = Color(0.85, 0.12, 0.29, 0.82)
+	glyph.z_index = -4
+	add_child(glyph)
+
+func _add_cable(start: Vector2, finish: Vector2, sag: float) -> void:
+	var cable := Line2D.new()
+	var points := PackedVector2Array()
+	for i in range(9):
+		var t := float(i) / 8.0
+		var point := start.lerp(finish, t)
+		point.y += sin(PI * t) * sag
+		points.append(point)
+	cable.points = points
+	cable.width = 4.0
+	cable.default_color = Color(0.015, 0.020, 0.030, 0.94)
+	cable.z_index = -5
+	add_child(cable)
 
 func _add_back_rect(pos: Vector2, size: Vector2, color: Color) -> void:
 	var poly := Polygon2D.new()
@@ -189,41 +334,68 @@ func _build_world() -> void:
 	var floor_color := Color(0.055, 0.065, 0.090)
 	var platform_color := Color(0.080, 0.110, 0.140)
 
+	# Six encounter zones with deliberate breathing spaces and readable gaps.
 	_make_platform(Vector2(725, 680), Vector2(1450, 80), floor_color)
-	_make_platform(Vector2(1725, 680), Vector2(550, 80), floor_color)
+	_make_platform(Vector2(1750, 680), Vector2(600, 80), floor_color)
 	_make_platform(Vector2(2650, 680), Vector2(900, 80), floor_color)
 	_make_platform(Vector2(3350, 680), Vector2(500, 80), floor_color)
-	_make_platform(Vector2(3925, 680), Vector2(250, 80), floor_color)
-	_make_platform(Vector2(4625, 680), Vector2(1150, 80), floor_color)
+	_make_platform(Vector2(4175, 680), Vector2(750, 80), floor_color)
+	_make_platform(Vector2(4875, 680), Vector2(650, 80), floor_color)
+	_make_platform(Vector2(5550, 680), Vector2(400, 80), floor_color)
+	_make_platform(Vector2(6075, 680), Vector2(650, 80), floor_color)
+	_make_platform(Vector2(6650, 680), Vector2(300, 80), floor_color)
+	_make_platform(Vector2(7400, 680), Vector2(1200, 80), floor_color)
 
+	# Entry / movement language.
 	_make_platform(Vector2(470, 520), Vector2(260, 24), platform_color, true)
 	_make_platform(Vector2(870, 420), Vector2(230, 24), platform_color, true)
 	_make_platform(Vector2(1190, 520), Vector2(190, 24), platform_color, true)
 
+	# Circuit / ranged combat.
 	_make_platform(Vector2(1650, 520), Vector2(220, 24), platform_color, true)
 	_make_platform(Vector2(1900, 405), Vector2(190, 24), platform_color, true)
 	_make_platform(Vector2(2390, 500), Vector2(250, 24), platform_color, true)
 	_make_platform(Vector2(2780, 410), Vector2(210, 24), platform_color, true)
 	_make_platform(Vector2(2980, 525), Vector2(150, 24), platform_color, true)
 
+	# Pressure / vertical target prioritization.
 	_make_platform(Vector2(3260, 505), Vector2(190, 24), platform_color, true)
 	_make_platform(Vector2(3480, 385), Vector2(190, 24), platform_color, true)
 	_make_platform(Vector2(3900, 495), Vector2(180, 24), platform_color, true)
+	_make_platform(Vector2(4310, 390), Vector2(210, 24), platform_color, true)
 
-	_make_platform(Vector2(4310, 500), Vector2(190, 24), platform_color, true)
-	_make_platform(Vector2(4830, 470), Vector2(200, 24), platform_color, true)
+	# Transit / mixed traversal.
+	_make_platform(Vector2(4720, 505), Vector2(210, 24), platform_color, true)
+	_make_platform(Vector2(5010, 390), Vector2(180, 24), platform_color, true)
+	_make_platform(Vector2(5420, 470), Vector2(220, 24), platform_color, true)
+	_make_platform(Vector2(5620, 350), Vector2(150, 24), platform_color, true)
+
+	# Cargador arena.
+	_make_platform(Vector2(5960, 485), Vector2(190, 24), platform_color, true)
+	_make_platform(Vector2(6240, 385), Vector2(220, 24), platform_color, true)
+	_make_platform(Vector2(6540, 490), Vector2(170, 24), platform_color, true)
+
+	# THE IDOL arena supports aerial specials without hiding the boss.
+	_make_platform(Vector2(7060, 500), Vector2(190, 24), platform_color, true)
+	_make_platform(Vector2(7420, 405), Vector2(220, 24), platform_color, true)
+	_make_platform(Vector2(7740, 510), Vector2(170, 24), platform_color, true)
 
 	_make_platform(Vector2(-20, 360), Vector2(40, 720), floor_color)
-	_make_platform(Vector2(5220, 360), Vector2(40, 720), floor_color)
+	_make_platform(Vector2(8020, 360), Vector2(40, 720), floor_color)
 
 	_spawn_hazard(Vector2(1110, 628), 1.0)
 	_spawn_hazard(Vector2(2570, 628), 1.25)
 	_spawn_hazard(Vector2(3390, 628), 0.9)
-	_spawn_hazard(Vector2(3895, 628), 0.7)
+	_spawn_hazard(Vector2(4140, 628), 0.9)
+	_spawn_hazard(Vector2(4870, 628), 0.85)
+	_spawn_hazard(Vector2(5550, 628), 0.75)
+	_spawn_hazard(Vector2(6110, 628), 0.9)
 
 	_create_gate(1, 1450.0, Color(0.20, 0.84, 0.78, 0.88))
 	_create_gate(2, 3100.0, Color(0.95, 0.61, 0.08, 0.88))
-	_create_gate(3, 4050.0, Color(0.85, 0.12, 0.29, 0.90))
+	_create_gate(3, 4550.0, Color(0.85, 0.12, 0.29, 0.90))
+	_create_gate(4, 5750.0, Color(0.20, 0.84, 0.78, 0.90))
+	_create_gate(5, BOSS_GATE_X, Color(0.95, 0.61, 0.08, 0.92))
 
 func _make_platform(pos: Vector2, size: Vector2, color: Color, one_way: bool = false) -> StaticBody2D:
 	var body := StaticBody2D.new()
@@ -296,6 +468,7 @@ func _open_gate(room_id: int) -> void:
 	tween.tween_property(gate, "scale:y", 0.02, 0.32)
 	tween.tween_property(gate, "modulate:a", 0.0, 0.32)
 	tween.chain().tween_callback(gate.queue_free)
+	Sfx.play("gate", -7.0)
 	_toast("ARENA CLEAR // GATE OPEN")
 
 func _spawn_player() -> void:
@@ -306,8 +479,12 @@ func _spawn_player() -> void:
 	player.health_changed.connect(_update_health)
 	player.weapon_changed.connect(_update_weapon)
 	player.core_changed.connect(_update_core)
-	player.special_used.connect(_toast)
+	player.special_used.connect(_on_special_used)
 	player.input_scheme_changed.connect(_update_controls)
+	player.shot_fired.connect(_on_shot_fired)
+	player.hit_confirmed.connect(_on_hit_confirmed)
+	player.damage_taken.connect(_on_damage_taken)
+	player.pickup_collected.connect(_on_pickup_collected)
 	player.died.connect(_on_player_died)
 
 func _spawn_xolo() -> void:
@@ -317,26 +494,46 @@ func _spawn_xolo() -> void:
 	xolo.global_position = player.global_position + Vector2(-72, -18)
 
 func _spawn_level_content() -> void:
+	# 01 ENTRY — teaches movement and simple target order.
 	_spawn_enemy("walker", Vector2(640, 570), 1)
 	_spawn_enemy("turret", Vector2(900, 375), 1)
 	_spawn_enemy("walker", Vector2(1270, 570), 1)
 
+	# 02 CIRCUIT — first sustained ranged encounter.
 	_spawn_enemy("walker", Vector2(1690, 570), 2)
 	_spawn_enemy("flyer", Vector2(1980, 150), 2)
 	_spawn_enemy("turret", Vector2(2400, 455), 2)
 	_spawn_enemy("flyer", Vector2(2820, 160), 2)
 
+	# 03 PRESSURE — mixed elevations and hazards.
 	_spawn_enemy("walker", Vector2(3260, 570), 3)
 	_spawn_enemy("turret", Vector2(3480, 340), 3)
 	_spawn_enemy("flyer", Vector2(3910, 200), 3)
+	_spawn_enemy("walker", Vector2(4350, 570), 3)
 
+	# 04 TRANSIT — traversal under crossfire.
+	_spawn_enemy("walker", Vector2(4720, 570), 4)
+	_spawn_enemy("flyer", Vector2(5050, 175), 4)
+	_spawn_enemy("turret", Vector2(5420, 425), 4)
+	_spawn_enemy("walker", Vector2(5620, 570), 4)
+
+	# 05 CARGADOR — elite skill check before the boss.
+	_spawn_enemy("walker", Vector2(5920, 570), 5)
+	_spawn_enemy("charger", Vector2(6250, 570), 5)
+	_spawn_enemy("flyer", Vector2(6550, 180), 5)
+
+	# Upgrades are spaced to let testers experience distinct build states.
 	_spawn_pickup("spread", Vector2(1570, 585))
 	_spawn_pickup("heal", Vector2(2290, 585))
 	_spawn_pickup("rapid", Vector2(3185, 585))
+	_spawn_pickup("core", Vector2(4680, 585))
+	_spawn_pickup("heal", Vector2(5840, 585))
+	_spawn_pickup("core", Vector2(6700, 585))
 
 	boss = BOSS_SCENE.instantiate()
 	add_child(boss)
-	boss.global_position = Vector2(4580, 300)
+	boss.arena_center_x = 7420.0
+	boss.global_position = Vector2(7420, 300)
 	boss.health_changed.connect(_on_boss_health)
 	boss.died.connect(_on_boss_died)
 
@@ -363,13 +560,15 @@ func _spawn_hazard(pos: Vector2, scale_x: float) -> void:
 	hazard.scale.x = scale_x
 
 func _on_enemy_died(_enemy, room_id: int) -> void:
+	stat_kills += 1
+	Sfx.play("kill", -10.0)
 	if is_instance_valid(player):
 		player.add_core(0.18)
 	room_counts[room_id] = maxi(room_counts[room_id] - 1, 0)
 	_reconcile_room_gate(room_id)
 
 func _reconcile_room_gates() -> void:
-	for room_id in [1, 2, 3]:
+	for room_id in [1, 2, 3, 4, 5]:
 		_reconcile_room_gate(room_id)
 
 func _reconcile_room_gate(room_id: int) -> void:
@@ -420,6 +619,24 @@ func _build_hud() -> void:
 	signal_tag.add_theme_font_size_override("font_size", 11)
 	signal_tag.add_theme_color_override("font_color", Color(0.95, 0.90, 0.82, 0.56))
 	hud.add_child(signal_tag)
+
+	# Compact six-zone minimap used for orientation during external playtests.
+	var map_bg := ColorRect.new()
+	map_bg.position = minimap_origin - Vector2(5, 3)
+	map_bg.size = Vector2(minimap_width + 10, 22)
+	map_bg.color = Color(0.025, 0.032, 0.050, 0.88)
+	hud.add_child(map_bg)
+	for i in range(6):
+		var cell := ColorRect.new()
+		cell.position = minimap_origin + Vector2(float(i) * (minimap_width / 6.0), 2)
+		cell.size = Vector2(minimap_width / 6.0 - 3.0, 10)
+		cell.color = Color(0.12, 0.16, 0.19, 0.95) if i < 5 else Color(0.20, 0.05, 0.10, 0.95)
+		hud.add_child(cell)
+	minimap_dot = ColorRect.new()
+	minimap_dot.position = minimap_origin + Vector2(0, 0)
+	minimap_dot.size = Vector2(5, 14)
+	minimap_dot.color = Color(0.95, 0.61, 0.08, 1.0)
+	hud.add_child(minimap_dot)
 
 	health_label = Label.new()
 	health_label.position = Vector2(24, 16)
@@ -505,8 +722,24 @@ func _build_hud() -> void:
 	end_label.size = Vector2(800, 220)
 	end_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	end_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	end_label.add_theme_font_size_override("font_size", 34)
+	end_label.add_theme_font_size_override("font_size", 30)
 	end_overlay.add_child(end_label)
+
+	start_overlay = ColorRect.new()
+	start_overlay.position = Vector2.ZERO
+	start_overlay.size = Vector2(1280, 720)
+	start_overlay.color = Color(0.008, 0.012, 0.020, 0.95)
+	hud.add_child(start_overlay)
+
+	start_label = Label.new()
+	start_label.position = Vector2(170, 150)
+	start_label.size = Vector2(940, 420)
+	start_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	start_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	start_label.add_theme_font_size_override("font_size", 24)
+	start_label.add_theme_color_override("font_color", Color(0.95, 0.90, 0.82))
+	start_label.text = "RUN24\nSIGNALPUNK\n\nTHE SIGNAL OF THE DEAD HAS BEEN HIJACKED.\nYOU ARE RUNNER 24. CROSS THE SIX NODES AND REACH THE ORIGIN.\n\nFIELD TEST BUILD · 6–12 MIN\n\nPRESS ANY KEY / CLICK / GAMEPAD BUTTON TO CONNECT"
+	start_overlay.add_child(start_label)
 
 func _update_controls(gamepad: bool) -> void:
 	if not is_instance_valid(help_label):
@@ -516,9 +749,17 @@ func _update_controls(gamepad: bool) -> void:
 	else:
 		help_label.text = "A/D MOVER · ESPACIO SALTAR · SHIFT DASH · MOUSE DISPARAR/APUNTAR · S/↓ BAJAR\nQ ESPECIAL · W+Q SKY · S+Q GROUND · DASH+Q PHASE · E NOVA PULSE"
 
+func _update_minimap() -> void:
+	if not is_instance_valid(minimap_dot) or not is_instance_valid(player):
+		return
+	var ratio := clampf(player.global_position.x / LEVEL_END_X, 0.0, 1.0)
+	minimap_dot.position = minimap_origin + Vector2(ratio * (minimap_width - 5.0), 0)
+
 func _update_health(current: int, maximum: int) -> void:
 	if is_instance_valid(health_label):
-		health_label.text = "LIFE  %d / %d" % [current, maximum]
+		var alive := "♥".repeat(maxi(current, 0))
+		var lost := "♡".repeat(maxi(maximum - current, 0))
+		health_label.text = "LIFE " + alive + lost
 
 func _update_core(current: float, maximum: float) -> void:
 	if not is_instance_valid(core_label):
@@ -542,6 +783,23 @@ func _toast(text: String) -> void:
 	tween.tween_interval(1.15)
 	tween.tween_property(toast_label, "modulate:a", 0.0, 0.55)
 
+func _on_special_used(text: String) -> void:
+	if text.begins_with("SPECIAL"):
+		stat_specials += 1
+	_toast(text)
+
+func _on_shot_fired() -> void:
+	stat_shots += 1
+
+func _on_hit_confirmed() -> void:
+	stat_hits += 1
+
+func _on_damage_taken(amount: int) -> void:
+	stat_damage += amount
+
+func _on_pickup_collected(_kind: String) -> void:
+	stat_pickups += 1
+
 func _on_boss_health(current: int, maximum: int) -> void:
 	boss_bar.max_value = maximum
 	boss_bar.value = current
@@ -552,19 +810,47 @@ func _on_boss_died() -> void:
 	level_finished = true
 	boss_bar.visible = false
 	boss_label.visible = false
+	Sfx.play("victory", -3.0)
 	_show_end(true)
 
 func _on_player_died() -> void:
 	if level_finished:
 		return
 	level_finished = true
+	Sfx.play("death", -3.0)
 	_show_end(false)
 
+func _format_time(seconds: float) -> String:
+	var total := int(round(seconds))
+	var minutes := total / 60
+	var secs := total % 60
+	return "%02d:%02d" % [minutes, secs]
+
+func _save_playtest_summary(victory: bool) -> void:
+	var data := {
+		"victory": victory,
+		"time_seconds": run_seconds,
+		"shots": stat_shots,
+		"hits": stat_hits,
+		"damage_taken": stat_damage,
+		"enemies_defeated": stat_kills,
+		"specials_used": stat_specials,
+		"pickups_collected": stat_pickups,
+		"furthest_x": player.global_position.x if is_instance_valid(player) else 0.0,
+		"build": "signalpunk_vertical_slice_1"
+	}
+	var file := FileAccess.open("user://last_playtest.json", FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(data, "\t"))
+
 func _show_end(victory: bool) -> void:
+	_save_playtest_summary(victory)
 	end_overlay.visible = true
-	if victory:
-		end_label.text = "SIGNAL RESTORED\n\nPROTOTYPE CLEAR\n\nR / A-CROSS / START  ·  PLAY AGAIN"
-		end_label.add_theme_color_override("font_color", Color(0.25, 1.0, 0.72))
-	else:
-		end_label.text = "SIGNAL LOST\n\nRUN FAILED\n\nR / A-CROSS / START  ·  RETRY"
-		end_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.5))
+	var result := "SIGNAL RESTORED" if victory else "SIGNAL LOST"
+	var subtitle := "THE IDOL DISCONNECTED" if victory else "RUNNER 24 TERMINATED"
+	var metrics := "TIME  %s   ·   ENEMIES  %d   ·   HITS  %d\nDAMAGE TAKEN  %d   ·   SPECIALS  %d   ·   PICKUPS  %d" % [
+		_format_time(run_seconds), stat_kills, stat_hits, stat_damage, stat_specials, stat_pickups
+	]
+	end_label.text = "%s\n%s\n\n%s\n\nR / A-CROSS / START  ·  RUN AGAIN" % [result, subtitle, metrics]
+	end_label.add_theme_color_override("font_color", Color(0.20, 0.84, 0.78) if victory else Color(0.85, 0.12, 0.29))
+	get_tree().paused = true

@@ -1,5 +1,7 @@
 extends CharacterBody2D
 
+const FX_BURST_SCENE := preload("res://scenes/fx/burst.tscn")
+
 var direction := Vector2.RIGHT
 var speed := 1000.0
 var damage := 1
@@ -63,8 +65,16 @@ func _physics_process(delta: float) -> void:
 				# A small margin counts partially visible enemy bodies as visible.
 				if _point_in_player_view(body.global_position, 42.0):
 					body.take_damage(damage, direction * 180.0)
+					Sfx.play("hit", -12.0)
+					if is_instance_valid(source_player) and source_player.has_method("register_hit"):
+						source_player.register_hit()
 					if core_gain_on_hit > 0.0 and is_instance_valid(source_player) and source_player.has_method("add_core"):
 						source_player.add_core(core_gain_on_hit)
+		var fx = FX_BURST_SCENE.instantiate()
+		get_tree().current_scene.add_child(fx)
+		fx.global_position = collision.get_position()
+		var impact_color := Color(0.85, 0.12, 0.29) if enemy_owned else Color(0.20, 0.84, 0.78)
+		fx.setup(impact_color, 13.0 if not special_visual else 24.0, 0.14, 6)
 		queue_free()
 
 func _outside_player_view() -> bool:

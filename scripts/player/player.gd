@@ -6,8 +6,13 @@ signal core_changed(current, maximum)
 signal special_used(text)
 signal died
 signal input_scheme_changed(using_gamepad: bool)
+signal shot_fired
+signal hit_confirmed
+signal damage_taken(amount: int)
+signal pickup_collected(kind: String)
 
 const PROJECTILE_SCENE := preload("res://scenes/combat/projectile.tscn")
+const FX_BURST_SCENE := preload("res://scenes/fx/burst.tscn")
 
 @export var move_speed := 440.0
 @export var acceleration := 4600.0
@@ -55,7 +60,9 @@ var phase_rush_left := 0.0
 var phase_rush_duration := 0.18
 var phase_rush_speed := 1250.0
 var phase_hit_ids := {}
+var camera_shake := 0.0
 
+@onready var camera: Camera2D = $Camera2D
 @onready var body_visual: Node2D = $VisualRoot
 @onready var core_visual: Polygon2D = $VisualRoot/CoreGlow
 
@@ -145,6 +152,7 @@ func _physics_process(delta: float) -> void:
 	if dead:
 		return
 
+	_update_camera_shake(delta)
 	_update_aim_direction()
 	_update_special_direction_buffer(delta)
 	_update_drop_through(delta)
@@ -181,6 +189,8 @@ func _physics_process(delta: float) -> void:
 			facing = signf(input_dir)
 		dash_left = dash_duration
 		dash_cooldown_left = dash_cooldown
+		Sfx.play("dash", -10.0)
+		camera_shake = maxf(camera_shake, 1.6)
 
 	if Input.is_action_just_pressed("special"):
 		_try_special()
@@ -218,6 +228,7 @@ func _physics_process(delta: float) -> void:
 	if jump_buffer_left > 0.0 and coyote_left > 0.0:
 		velocity.y = jump_velocity
 		jump_buffer_left = 0.0
+		Sfx.play("jump", -11.0)
 		coyote_left = 0.0
 
 	if Input.is_action_just_released("jump") and velocity.y < -120.0:
@@ -226,6 +237,14 @@ func _physics_process(delta: float) -> void:
 	_update_visual()
 	move_and_slide()
 	queue_redraw()
+
+func _update_camera_shake(delta: float) -> void:
+	camera_shake = move_toward(camera_shake, 0.0, 15.0 * delta)
+	if camera_shake <= 0.02:
+		camera.offset = camera.offset.lerp(Vector2.ZERO, 0.35)
+		return
+	var t := Time.get_ticks_msec() * 0.035
+	camera.offset = Vector2(sin(t * 1.7), cos(t * 2.3)) * camera_shake
 
 func _update_special_direction_buffer(delta: float) -> void:
 	special_dir_left = maxf(special_dir_left - delta, 0.0)
@@ -264,6 +283,9 @@ func _spend_core(amount: float = 1.0) -> bool:
 		return false
 	core_energy = maxf(core_energy - amount, 0.0)
 	core_changed.emit(core_energy, core_max)
+	Sfx.play("special", -7.0)
+	camera_shake = maxf(camera_shake, 3.2)
+	_spawn_fx(global_position, Color(0.95, 0.61, 0.08), 32.0, 0.22, 10)
 	return true
 
 func add_core(amount: float) -> void:
@@ -342,9 +364,13 @@ func _update_aim_direction() -> void:
 		facing = signf(aim_direction.x)
 
 func _shoot() -> void:
+	shot_fired.emit()
+	Sfx.play("shoot", -13.0)
+	camera_shake = maxf(camera_shake, 0.8)
 	var aim := aim_direction
 	if aim.length_squared() < 0.01:
 		aim = Vector2(facing, 0.0)
+	_spawn_fx(global_position + aim.normalized() * 32.0, Color(0.95, 0.61, 0.08), 15.0, 0.10, 6)
 
 	var angles := [0.0]
 	if spread_level >= 3:
@@ -354,6 +380,15 @@ func _shoot() -> void:
 		_spawn_player_projectile(aim.rotated(angle), 1, 1120.0, false, 0.12)
 
 	core_visual.rotation += 0.24
+
+func register_hit() -> void:
+	hit_confirmed.emit()
+
+func _spawn_fx(pos: Vector2, color: Color, size: float, life: float, spokes: int) -> void:
+	var fx = FX_BURST_SCENE.instantiate()
+	get_tree().current_scene.add_child(fx)
+	fx.global_position = pos
+	fx.setup(color, size, life, spokes)
 
 func _spawn_player_projectile(dir: Vector2, damage: int, speed: float, special_visual: bool, core_gain: float):
 	var bullet = PROJECTILE_SCENE.instantiate()
@@ -380,6 +415,10 @@ func take_damage(amount: int, knockback: Vector2 = Vector2.ZERO) -> void:
 	if dead or invulnerability_left > 0.0 or dash_left > 0.0 or phase_rush_left > 0.0:
 		return
 	health = maxi(health - amount, 0)
+	damage_taken.emit(amount)
+	Sfx.play("hurt", -7.0)
+	camera_shake = maxf(camera_shake, 5.0)
+	_spawn_fx(global_position, Color(0.85, 0.12, 0.29), 28.0, 0.18, 8)
 	health_changed.emit(health, max_health)
 	if health <= 0:
 		dead = true
@@ -390,6 +429,8 @@ func take_damage(amount: int, knockback: Vector2 = Vector2.ZERO) -> void:
 	velocity = knockback
 
 func apply_upgrade(kind: String) -> void:
+	pickup_collected.emit(kind)
+	Sfx.play("pickup", -7.0)
 	match kind:
 		"heal":
 			health = mini(health + 2, max_health)
@@ -401,6 +442,9 @@ func apply_upgrade(kind: String) -> void:
 		"spread":
 			spread_level = 3
 			weapon_changed.emit("WEAPON: SPREAD")
+		"core":
+			add_core(1.5)
+			weapon_changed.emit("CORE RESTORED")
 
 func set_checkpoint(new_position: Vector2) -> void:
 	checkpoint_position = new_position

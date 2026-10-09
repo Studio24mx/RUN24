@@ -4,10 +4,11 @@ signal died
 signal health_changed(current, maximum)
 
 const PROJECTILE_SCENE := preload("res://scenes/combat/projectile.tscn")
+const FX_BURST_SCENE := preload("res://scenes/fx/burst.tscn")
 
 @export var arena_center_x := 4580.0
-var max_health := 80
-var health := 80
+var max_health := 220
+var health := 220
 var active := false
 var dead := false
 var time := 0.0
@@ -62,6 +63,7 @@ func _physics_process(delta: float) -> void:
 		player.take_damage(1, global_position.direction_to(player.global_position) * 560.0 + Vector2.UP * 160.0)
 
 func _aimed_burst(target: Vector2, count: int, spread: float, projectile_speed: float) -> void:
+	Sfx.play("shoot", -8.0)
 	var base_dir := global_position.direction_to(target)
 	var center := float(count - 1) * 0.5
 	for i in range(count):
@@ -69,6 +71,7 @@ func _aimed_burst(target: Vector2, count: int, spread: float, projectile_speed: 
 		_spawn_bullet(base_dir.rotated(angle), projectile_speed)
 
 func _radial_burst(count: int, projectile_speed: float) -> void:
+	Sfx.play("shoot", -8.0)
 	for i in range(count):
 		var angle := TAU * float(i) / float(count) + time * 0.35
 		_spawn_bullet(Vector2.RIGHT.rotated(angle), projectile_speed)
@@ -90,6 +93,11 @@ func take_damage(amount: int, _knockback: Vector2 = Vector2.ZERO) -> void:
 	queue_redraw()
 	if health <= 0:
 		dead = true
+		for size in [70.0, 110.0, 150.0]:
+			var fx = FX_BURST_SCENE.instantiate()
+			get_tree().current_scene.add_child(fx)
+			fx.global_position = global_position
+			fx.setup(Color(0.95, 0.61, 0.08), size, 0.45, 14)
 		died.emit()
 		queue_free()
 
@@ -129,3 +137,5 @@ func _draw() -> void:
 	# External core aura communicates phase/health without repainting the SVG.
 	var core_color := gold if ratio > 0.33 else cochineal
 	draw_circle(Vector2(0, 15), 17.0 + pulse * 2.0, Color(core_color.r, core_color.g, core_color.b, 0.10))
+	if fire_timer < 0.22:
+		draw_arc(Vector2.ZERO, 104.0 + pulse * 4.0, 0.0, TAU, 48, Color(gold.r, gold.g, gold.b, 0.78), 4.0)
