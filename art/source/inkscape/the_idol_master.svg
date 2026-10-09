@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
+<title>RUN24 The Idol</title><g stroke-linejoin="round" stroke-linecap="round">
+<path d="M118 119H202L220 230L194 278H126L100 230Z" fill="#0B0D14" stroke="#D92E5B" stroke-width="7"/>
+<path d="M160 137V259" stroke="#35D5C8" stroke-width="5"/><path d="M126 193H194" stroke="#31204F" stroke-width="8"/>
+<path d="M112 127L82 142L91 172L119 163ZM208 127L238 142L229 172L201 163Z" fill="#11151F" stroke="#D92E5B" stroke-width="5"/>
+<circle cx="91" cy="151" r="8" fill="#F3A712"/><circle cx="229" cy="151" r="8" fill="#F3A712"/>
+<path d="M126 55L145 35H175L196 55L199 98L183 119L160 135L137 119L121 98Z" fill="#F2E7D3" stroke="#0B0D14" stroke-width="7"/>
+<path d="M126 56L115 28L139 43ZM194 56L205 28L181 43Z" fill="#F2E7D3" stroke="#0B0D14" stroke-width="6"/>
+<circle cx="145" cy="79" r="12" fill="#0B0D14"/><circle cx="176" cy="79" r="12" fill="#0B0D14"/>
+<circle cx="145" cy="79" r="4" fill="#D92E5B"/><circle cx="176" cy="79" r="4" fill="#D92E5B"/>
+<path d="M153 92H167L160 107Z" fill="#0B0D14"/><path d="M139 111H181" stroke="#0B0D14" stroke-width="6"/>
+<path d="M137 43L126 12M160 35V4M183 43L195 12" stroke="#D92E5B" stroke-width="7"/><path d="M160 35V4" stroke="#F3A712" stroke-width="7"/>
+<circle cx="160" cy="7" r="7" fill="#F3A712"/><circle cx="160" cy="7" r="2.5" fill="#fff"/>
+<circle cx="160" cy="163" r="24" fill="#0B0D14" stroke="#F2E7D3" stroke-width="5"/><circle cx="160" cy="163" r="15" fill="#D92E5B"/><circle cx="160" cy="163" r="7" fill="#F3A712"/><circle cx="160" cy="163" r="3" fill="#fff"/>
+<path d="M160 139V126M160 187V201M136 163H123M184 163H197" stroke="#35D5C8" stroke-width="4"/>
+<path d="M133 205L149 217L133 229M187 205L171 217L187 229M145 245L160 258L175 245" fill="none" stroke="#35D5C8" stroke-width="4"/>
+</g></svg>

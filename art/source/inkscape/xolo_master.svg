@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="160" viewBox="0 0 256 160">
+<title>RUN24 Xolo</title><g stroke-linejoin="round" stroke-linecap="round">
+<path d="M44 77C18 69 16 43 31 25C30 43 49 39 49 20C67 39 67 64 52 78Z" fill="#35D5C8" opacity=".78"/>
+<path d="M65 91C38 89 28 76 28 62C43 74 61 68 76 60L88 76Z" fill="#0B0D14" stroke="#35D5C8" stroke-width="4"/>
+<path d="M73 68C94 51 137 50 164 64L181 78L170 102C136 111 97 108 68 92Z" fill="#0B0D14" stroke="#35D5C8" stroke-width="4"/>
+<path d="M85 72C102 63 129 62 148 69M90 80C98 90 101 98 99 106M106 76C114 88 116 99 113 108M124 75C132 88 134 98 132 107M143 75C150 87 151 97 150 104" fill="none" stroke="#F2E7D3" stroke-width="4"/>
+<path d="M83 95H95L92 128L75 129ZM112 98L124 99L126 129H110ZM147 98L159 97L166 127L150 129ZM166 91L178 87L190 116L175 121Z" fill="#0B0D14" stroke="#35D5C8" stroke-width="3"/>
+<path d="M158 68L171 45L187 49L191 67L178 83Z" fill="#0B0D14" stroke="#35D5C8" stroke-width="4"/>
+<path d="M176 47L182 18L192 48ZM188 48L205 22L203 58Z" fill="#0B0D14" stroke="#35D5C8" stroke-width="4"/>
+<path d="M177 47L203 50L226 63L216 78L191 76L176 66Z" fill="#0B0D14" stroke="#35D5C8" stroke-width="4"/>
+<path d="M189 51L211 57L214 69L197 72L185 63Z" fill="#F2E7D3"/><circle cx="205" cy="60" r="5" fill="#35D5C8"/><circle cx="205" cy="60" r="2" fill="#fff"/>
+<path d="M163 63L186 72L177 84L157 76Z" fill="#D92E5B"/><path d="M161 76L145 92L166 88Z" fill="#D92E5B"/>
+<circle cx="61" cy="44" r="5" fill="#35D5C8"/><circle cx="54" cy="37" r="2.5" fill="#fff"/>
+</g></svg>

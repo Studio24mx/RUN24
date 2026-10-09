@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+<title>RUN24 Runner 24</title>
+<g stroke-linejoin="round" stroke-linecap="round">
+<path d="M73 65C55 59 42 60 28 50L38 72C49 74 60 76 72 82Z" fill="#D92E5B"/>
+<path d="M38 69C25 70 17 76 9 88C22 86 37 89 52 95Z" fill="#D92E5B" opacity=".88"/>
+<path d="M76 123H92L87 160H69Z" fill="#11151F" stroke="#F2E7D3" stroke-width="3"/>
+<path d="M101 122H117L127 158L109 160Z" fill="#11151F" stroke="#F2E7D3" stroke-width="3"/>
+<path d="M64 155H90L92 167L61 168Z" fill="#F2E7D3" stroke="#11151F" stroke-width="3"/>
+<path d="M107 155L132 154L139 165L107 168Z" fill="#F2E7D3" stroke="#11151F" stroke-width="3"/>
+<path d="M67 76L89 64L117 70L126 97L118 128L80 130L62 109Z" fill="#0B0D14" stroke="#F2E7D3" stroke-width="3"/>
+<path d="M75 80L94 73L110 77L115 91L104 99L82 96Z" fill="#F2E7D3"/>
+<path d="M91 90L101 84L111 90L109 103L100 109L90 102Z" fill="#0B0D14" stroke="#35D5C8" stroke-width="3"/>
+<circle cx="100" cy="96" r="6" fill="#35D5C8"/><circle cx="100" cy="96" r="2.2" fill="#fff"/>
+<path d="M67 36L81 24L108 27L126 42L123 65L104 76L78 69L64 55Z" fill="#F2E7D3" stroke="#0B0D14" stroke-width="4"/>
+<path d="M102 28L123 41L122 61L109 70L95 64L92 43Z" fill="#0B0D14"/>
+<path d="M70 37L76 13L88 31Z" fill="#F2E7D3" stroke="#0B0D14" stroke-width="4"/>
+<path d="M83 31L94 12L99 36Z" fill="#F2E7D3" stroke="#0B0D14" stroke-width="4"/>
+<path d="M102 40L119 43L117 55L103 58L96 50Z" fill="#35D5C8"/><circle cx="111" cy="49" r="3" fill="#fff"/>
+<path d="M111 93L151 89L171 98L164 111L128 113L111 106Z" fill="#11151F" stroke="#F2E7D3" stroke-width="3"/>
+<path d="M139 91L154 92L160 100L154 108L139 109L133 101Z" fill="#F3A712" stroke="#0B0D14" stroke-width="3"/>
+<path d="M151 95H177L184 101L176 107L153 106Z" fill="#0B0D14" stroke="#D92E5B" stroke-width="3"/>
+<path d="M105 90L124 93L130 105L117 111L101 101Z" fill="#F2E7D3" stroke="#0B0D14" stroke-width="3"/>
+</g></svg>

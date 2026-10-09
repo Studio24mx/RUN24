@@ -57,7 +57,7 @@ var phase_rush_speed := 1250.0
 var phase_hit_ids := {}
 
 @onready var body_visual: Node2D = $VisualRoot
-@onready var core_visual: Polygon2D = $VisualRoot/Core
+@onready var core_visual: Polygon2D = $VisualRoot/CoreGlow
 
 func _ready() -> void:
 	add_to_group("player")

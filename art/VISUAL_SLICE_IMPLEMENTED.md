@@ -29,3 +29,14 @@ It is not final production illustration. After gameplay testing confirms readabi
 4. Add hit flashes, particles, dash trail and soul-fragment death FX.
 5. Add one short THE IDOL intro animation.
 6. Paint one environment keyframe and convert it into a reusable modular kit.
+
+## Authored vector pass
+The first authored production assets are now live in-engine:
+- `art/source/inkscape/runner24_master.svg` -> RUNNER 24 editable master.
+- `art/source/inkscape/xolo_master.svg` -> XOLO editable master.
+- `art/source/inkscape/the_idol_master.svg` -> THE IDOL editable master.
+- Runtime SVG copies live under `art/exports/` and Godot imports them directly.
+- PNG renders under `art/previews/` are QA references only.
+- RUNNER 24 keeps an independent procedural CORE glow for specials/squash animation.
+- XOLO keeps procedural follow/bob motion around the authored sprite.
+- THE IDOL combines an authored central body with procedural halo, radial spikes and signal arms.
