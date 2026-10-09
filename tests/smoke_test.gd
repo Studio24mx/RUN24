@@ -23,11 +23,11 @@ func _run() -> void:
 	paused = false
 	await process_frame
 
-	_assert_true(game.room_counts.size() == 5, "five combat rooms registered")
+	_assert_true(game.room_counts.size() == 9, "nine combat rooms registered")
 	_assert_true(is_instance_valid(game.player), "player spawned")
 	_assert_true(is_instance_valid(game.boss), "boss spawned")
 
-	for room_id in [1, 2, 3, 4, 5]:
+	for room_id in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
 		var group_name := "room_%d_enemies" % room_id
 		var enemies := get_nodes_in_group(group_name)
 		_assert_true(enemies.size() > 0, "room %d has enemies" % room_id)
@@ -38,7 +38,7 @@ func _run() -> void:
 		game._reconcile_room_gate(room_id)
 		_assert_true(not game.gates.has(room_id), "room %d gate unlocks" % room_id)
 
-	game.player.global_position = Vector2(7000, 600)
+	game.player.global_position = Vector2(14700, 600)
 	game._process(0.016)
 	await process_frame
 	_assert_true(game.boss_started, "boss encounter activates")

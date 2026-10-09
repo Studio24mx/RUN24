@@ -4,6 +4,9 @@ signal died(enemy, room_id)
 
 const PROJECTILE_SCENE := preload("res://scenes/combat/projectile.tscn")
 const FX_BURST_SCENE := preload("res://scenes/fx/burst.tscn")
+const HUSK_TEXTURE := preload("res://art/exports/enemies/husk.svg")
+const VIGILANTE_TEXTURE := preload("res://art/exports/enemies/vigilante.svg")
+const CENTINELA_TEXTURE := preload("res://art/exports/enemies/centinela.svg")
 const CHARGER_TEXTURE := preload("res://art/exports/enemies/charger.svg")
 
 @export_enum("walker", "turret", "flyer", "charger") var enemy_type := "walker"
@@ -21,6 +24,9 @@ var hover_origin_y := 0.0
 var charge_left := 0.0
 var charge_cooldown_left := 1.0
 var facing := 1.0
+var visual_time := 0.0
+var visual_sprite: Sprite2D
+var recoil_left := 0.0
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -31,31 +37,38 @@ func _ready() -> void:
 		"walker":
 			max_health = 4
 			move_speed = 135.0
+			visual_sprite = _add_authored_sprite(HUSK_TEXTURE, Vector2(0.39, 0.39), Vector2(0, -8))
 		"turret":
 			max_health = 6
 			move_speed = 0.0
 			fire_interval = 1.15
+			visual_sprite = _add_authored_sprite(VIGILANTE_TEXTURE, Vector2(0.36, 0.36), Vector2(0, -10))
 		"flyer":
 			max_health = 5
 			move_speed = 105.0
 			fire_interval = 1.55
+			visual_sprite = _add_authored_sprite(CENTINELA_TEXTURE, Vector2(0.34, 0.34), Vector2(0, -5))
 		"charger":
 			max_health = 18
 			move_speed = 90.0
 			fire_interval = 99.0
-			var charger_art := Sprite2D.new()
-			charger_art.name = "ChargerArt"
-			charger_art.texture = CHARGER_TEXTURE
-			charger_art.scale = Vector2(0.38, 0.38)
-			charger_art.position = Vector2(0, -5)
-			charger_art.z_index = -1
-			add_child(charger_art)
+			visual_sprite = _add_authored_sprite(CHARGER_TEXTURE, Vector2(0.38, 0.38), Vector2(0, -5))
+			visual_sprite.name = "ChargerArt"
 			var charger_shape = $CollisionShape2D.shape.duplicate()
 			charger_shape.size = Vector2(72, 58)
 			$CollisionShape2D.shape = charger_shape
 	health = max_health
 	hover_origin_y = global_position.y
 	queue_redraw()
+
+func _add_authored_sprite(texture: Texture2D, sprite_scale: Vector2, offset: Vector2) -> Sprite2D:
+	var sprite := Sprite2D.new()
+	sprite.texture = texture
+	sprite.scale = sprite_scale
+	sprite.position = offset
+	sprite.z_index = 1
+	add_child(sprite)
+	return sprite
 
 func _physics_process(delta: float) -> void:
 	if dead:
@@ -67,6 +80,8 @@ func _physics_process(delta: float) -> void:
 	if not is_instance_valid(player):
 		return
 
+	visual_time += delta
+	recoil_left = maxf(recoil_left - delta, 0.0)
 	fire_timer -= delta
 	match enemy_type:
 		"walker":
@@ -75,12 +90,15 @@ func _physics_process(delta: float) -> void:
 			var dx: float = player.global_position.x - global_position.x
 			velocity.x = move_toward(velocity.x, signf(dx) * move_speed, 900.0 * delta)
 			move_and_slide()
+			_update_authored_visual()
 			_damage_player_on_contact(player)
 		"turret":
 			velocity = Vector2.ZERO
 			if global_position.distance_to(player.global_position) < 780.0 and fire_timer <= 0.0:
 				_fire_at(player.global_position, 470.0)
+				recoil_left = 0.16
 				fire_timer = fire_interval
+			_update_authored_visual()
 		"flyer":
 			hover_time += delta
 			queue_redraw()
@@ -89,8 +107,10 @@ func _physics_process(delta: float) -> void:
 			velocity.y = (target_y - global_position.y) * 3.0
 			velocity.x = signf(dx) * move_speed if absf(dx) > 250.0 else 0.0
 			move_and_slide()
+			_update_authored_visual()
 			if global_position.distance_to(player.global_position) < 850.0 and fire_timer <= 0.0:
 				_fire_at(player.global_position, 420.0)
+				recoil_left = 0.14
 				fire_timer = fire_interval
 			_damage_player_on_contact(player)
 		"charger":
@@ -110,11 +130,40 @@ func _physics_process(delta: float) -> void:
 					charge_cooldown_left = 2.15
 					Sfx.play("dash", -5.0)
 			move_and_slide()
-			var charger_art := get_node_or_null("ChargerArt") as Sprite2D
-			if is_instance_valid(charger_art):
-				charger_art.scale.x = absf(charger_art.scale.x) * facing
+			_update_authored_visual()
 			_damage_player_on_contact(player, 2, 66.0, 620.0)
 			queue_redraw()
+
+func _update_authored_visual() -> void:
+	if not is_instance_valid(visual_sprite):
+		return
+	match enemy_type:
+		"walker":
+			if absf(velocity.x) > 4.0:
+				facing = signf(velocity.x)
+			visual_sprite.scale.x = absf(visual_sprite.scale.x) * facing
+			visual_sprite.position.y = -8.0 + sin(visual_time * 12.0) * 2.4
+			visual_sprite.rotation = sin(visual_time * 12.0) * 0.035
+		"turret":
+			var kick := 7.0 * clampf(recoil_left / 0.16, 0.0, 1.0)
+			visual_sprite.position = Vector2(-kick, -10.0 + sin(visual_time * 2.4) * 1.3)
+			visual_sprite.rotation = sin(visual_time * 1.8) * 0.008
+		"flyer":
+			if absf(velocity.x) > 2.0:
+				facing = signf(velocity.x)
+			visual_sprite.scale.x = absf(visual_sprite.scale.x) * facing
+			visual_sprite.scale.y = 0.34 + sin(visual_time * 10.0) * 0.018
+			visual_sprite.rotation = clampf(velocity.x / 900.0, -0.10, 0.10)
+		"charger":
+			visual_sprite.scale.x = absf(visual_sprite.scale.x) * facing
+			if charge_left > 0.0:
+				visual_sprite.scale.y = lerpf(visual_sprite.scale.y, 0.32, 0.30)
+				visual_sprite.scale.x = facing * 0.46
+				visual_sprite.rotation = -facing * 0.055
+			else:
+				visual_sprite.scale.y = lerpf(visual_sprite.scale.y, 0.38, 0.18)
+				visual_sprite.scale.x = facing * 0.38
+				visual_sprite.rotation = sin(visual_time * 5.0) * 0.018
 
 func _damage_player_on_contact(player: Node2D, amount: int = 1, radius: float = 48.0, push_force: float = 420.0) -> void:
 	if global_position.distance_to(player.global_position) < radius and player.has_method("take_damage"):
@@ -158,6 +207,34 @@ func _draw() -> void:
 	var cochineal := Color(0.85, 0.12, 0.29, 1.0)
 	var jade := Color(0.20, 0.84, 0.78, 1.0)
 	var gold := Color(0.95, 0.61, 0.08, 1.0)
+
+	# Authored sprites own the body silhouette. Procedural drawing is retained
+	# below as a fallback, while only aura/telegraph/health are drawn on top.
+	if is_instance_valid(visual_sprite):
+		var aura_radius := 34.0
+		var aura_color := jade
+		if enemy_type == "walker":
+			aura_radius = 31.0
+			aura_color = cochineal
+		elif enemy_type == "turret":
+			aura_radius = 37.0
+			aura_color = jade
+		elif enemy_type == "flyer":
+			aura_radius = 42.0 + sin(visual_time * 6.0) * 3.0
+			aura_color = jade
+		elif enemy_type == "charger":
+			aura_radius = 60.0 + sin(visual_time * 8.0) * 4.0
+			aura_color = cochineal
+		draw_circle(Vector2(0, -5), aura_radius, Color(aura_color.r, aura_color.g, aura_color.b, 0.06))
+		if enemy_type == "charger" and charge_left > 0.0:
+			var charge_pulse := (sin(visual_time * 18.0) + 1.0) * 0.5
+			draw_arc(Vector2(0, -5), 62.0 + charge_pulse * 5.0, -1.2, 1.2, 22, cochineal, 4.0)
+			draw_line(Vector2(-facing * 92.0, 4), Vector2(-facing * 48.0, 4), gold, 5.0)
+		var authored_bar_width := 72.0 if enemy_type == "charger" else 48.0
+		var authored_bar_y := -62.0 if enemy_type == "charger" else -48.0
+		draw_rect(Rect2(-authored_bar_width * 0.5, authored_bar_y, authored_bar_width, 4), Color(0.02, 0.025, 0.04, 0.92))
+		draw_rect(Rect2(-authored_bar_width * 0.5, authored_bar_y, authored_bar_width * ratio, 4), cochineal if ratio < 0.5 else jade)
+		return
 
 	match enemy_type:
 		"walker":

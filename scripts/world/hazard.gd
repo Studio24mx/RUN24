@@ -4,6 +4,9 @@ extends Area2D
 @export var contact_check_interval := 0.08
 
 var contact_check_left := 0.0
+var visual_time := 0.0
+
+@onready var visual: Polygon2D = $Visual
 
 func _ready() -> void:
 	add_to_group("hazards")
@@ -12,6 +15,10 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 
 func _physics_process(delta: float) -> void:
+	visual_time += delta
+	if is_instance_valid(visual):
+		visual.scale.y = 1.0 + sin(visual_time * 5.5) * 0.055
+		visual.modulate = Color(1.0, 0.82 + sin(visual_time * 4.0) * 0.08, 0.90, 1.0)
 	# Re-check contact several times per second. take_damage() owns the player's
 	# invulnerability window, so a player who remains on the spikes is damaged
 	# again as soon as that window ends instead of becoming permanently safe.

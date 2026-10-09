@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="360" viewBox="0 0 260 360">
+<title>RUN24 Signal Arch</title><g stroke-linejoin="round">
+<path d="M28 342V124L52 70L89 34H171L208 70L232 124V342H185V168C185 126 161 104 130 104C99 104 75 126 75 168V342Z" fill="#0B0D14" stroke="#253444" stroke-width="10"/>
+<path d="M49 334V139L67 92L96 61H164L193 92L211 139V334" fill="none" stroke="#D92E5B" stroke-width="5" opacity=".72"/>
+<path d="M97 342V180C97 152 111 137 130 137C149 137 163 152 163 180V342Z" fill="#071216" stroke="#35D5C8" stroke-width="5"/>
+<circle cx="130" cy="89" r="26" fill="#0B0D14" stroke="#D92E5B" stroke-width="5"/><circle cx="130" cy="89" r="9" fill="#35D5C8"/>
+<path d="M130 63V35M104 89H76M156 89H184M130 115V126" stroke="#F3A712" stroke-width="5"/>
+<path d="M48 222H77M183 222H212M48 278H77M183 278H212" stroke="#31204F" stroke-width="8"/>
+</g></svg>

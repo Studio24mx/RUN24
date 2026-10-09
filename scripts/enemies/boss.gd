@@ -15,17 +15,28 @@ var time := 0.0
 var fire_timer := 0.8
 var pattern_index := 0
 
+@onready var authored_body: Sprite2D = $AuthoredBody
+
 func _ready() -> void:
 	add_to_group("enemies")
 	add_to_group("boss")
 	collision_layer = 4
 	collision_mask = 3
+	modulate.a = 0.0
+	scale = Vector2(0.72, 0.72)
 	queue_redraw()
 
 func activate() -> void:
 	if active or dead:
 		return
 	active = true
+	fire_timer = 1.45
+	var intro := create_tween()
+	intro.set_parallel(true)
+	intro.set_trans(Tween.TRANS_BACK)
+	intro.set_ease(Tween.EASE_OUT)
+	intro.tween_property(self, "modulate:a", 1.0, 0.65)
+	intro.tween_property(self, "scale", Vector2.ONE, 0.75)
 	health_changed.emit(health, max_health)
 
 func _physics_process(delta: float) -> void:
@@ -39,6 +50,11 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 	fire_timer -= delta
 	var ratio := float(health) / float(max_health)
+	var phase_energy := 1.0 - ratio
+	if is_instance_valid(authored_body):
+		authored_body.rotation = sin(time * (1.5 + phase_energy * 2.0)) * (0.012 + phase_energy * 0.025)
+		var pulse_scale := 0.45 + sin(time * 4.0) * (0.006 + phase_energy * 0.012)
+		authored_body.scale = Vector2.ONE * pulse_scale
 	var movement_speed := 1.4 if ratio > 0.5 else 2.0
 	global_position.x = arena_center_x + sin(time * movement_speed) * 260.0
 	global_position.y = 300.0 + sin(time * 2.1) * 70.0

@@ -1,6 +1,7 @@
 extends Node
 
 var streams := {}
+var music_player: AudioStreamPlayer
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -16,6 +17,13 @@ func _ready() -> void:
 	streams["boss"] = _tone(82.0, 0.620, 0.42, -0.18)
 	streams["victory"] = _tone(523.25, 0.520, 0.32, 0.72)
 	streams["death"] = _tone(110.0, 0.520, 0.42, -0.78)
+	streams["ambient_music"] = _music_loop(false)
+	streams["boss_music"] = _music_loop(true)
+
+	music_player = AudioStreamPlayer.new()
+	music_player.volume_db = -24.0
+	add_child(music_player)
+	start_ambient_music()
 
 func play(name: String, volume_db: float = -7.0) -> void:
 	if not streams.has(name):
@@ -26,6 +34,26 @@ func play(name: String, volume_db: float = -7.0) -> void:
 	add_child(player)
 	player.finished.connect(player.queue_free)
 	player.play()
+
+func start_ambient_music() -> void:
+	if not is_instance_valid(music_player):
+		return
+	if music_player.stream == streams.get("ambient_music") and music_player.playing:
+		return
+	music_player.stream = streams.get("ambient_music")
+	music_player.volume_db = -23.0
+	music_player.play()
+
+func start_boss_music() -> void:
+	if not is_instance_valid(music_player):
+		return
+	music_player.stream = streams.get("boss_music")
+	music_player.volume_db = -20.0
+	music_player.play()
+
+func stop_music() -> void:
+	if is_instance_valid(music_player):
+		music_player.stop()
 
 func _tone(freq: float, duration: float, amp: float, glide: float = 0.0) -> AudioStreamWAV:
 	var rate := 22050
@@ -45,5 +73,38 @@ func _tone(freq: float, duration: float, amp: float, glide: float = 0.0) -> Audi
 	wav.format = AudioStreamWAV.FORMAT_16_BITS
 	wav.mix_rate = rate
 	wav.stereo = false
+	wav.data = data
+	return wav
+
+func _music_loop(boss_mode: bool) -> AudioStreamWAV:
+	var rate := 22050
+	var seconds := 8.0
+	var count := int(seconds * float(rate))
+	var data := PackedByteArray()
+	data.resize(count * 2)
+	var roots := [55.0, 65.406, 73.416, 49.0] if not boss_mode else [55.0, 58.27, 49.0, 65.406]
+	for i in range(count):
+		var t := float(i) / float(rate)
+		var bar := int(t / 2.0) % roots.size()
+		var root: float = roots[bar]
+		var local := fmod(t, 2.0)
+		var slow_env := 0.55 + 0.45 * sin(PI * local / 2.0)
+		var drone := sin(TAU * root * t) * 0.34
+		drone += sin(TAU * root * 1.5 * t) * 0.15
+		drone += sin(TAU * root * 2.0 * t) * 0.10
+		var pulse_rate := 4.0 if boss_mode else 2.0
+		var beat_phase := fmod(t * pulse_rate, 1.0)
+		var beat_env := exp(-beat_phase * (12.0 if boss_mode else 9.0))
+		var pulse := sin(TAU * (root * 4.0) * t) * beat_env * (0.20 if boss_mode else 0.10)
+		var shimmer := sin(TAU * (root * 6.0) * t + sin(t * 0.7)) * 0.035
+		var sample := (drone * slow_env + pulse + shimmer) * (0.42 if boss_mode else 0.32)
+		data.encode_s16(i * 2, int(clampf(sample, -1.0, 1.0) * 32767.0))
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
+	wav.mix_rate = rate
+	wav.stereo = false
+	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	wav.loop_begin = 0
+	wav.loop_end = count
 	wav.data = data
 	return wav

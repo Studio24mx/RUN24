@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="300" viewBox="0 0 220 300">
+<title>RUN24 Relay Shrine</title><g stroke-linejoin="round">
+<path d="M42 286L52 111L76 74L91 35H129L144 74L168 111L178 286Z" fill="#0B0D14" stroke="#263847" stroke-width="8"/>
+<path d="M60 271L67 127L89 91H131L153 127L160 271Z" fill="#101720" stroke="#D92E5B" stroke-width="5"/>
+<path d="M86 92L110 56L134 92L126 116H94Z" fill="#F2E7D3" stroke="#0B0D14" stroke-width="4"/>
+<circle cx="110" cy="95" r="9" fill="#D92E5B"/><circle cx="110" cy="95" r="3" fill="#fff"/>
+<path d="M110 18V52M93 27L102 58M127 27L118 58" stroke="#35D5C8" stroke-width="5"/>
+<path d="M82 148H138M78 184H142M74 221H146" stroke="#35D5C8" stroke-opacity=".55" stroke-width="4"/>
+<path d="M97 138L110 125L123 138L110 151Z" fill="#F3A712"/>
+</g></svg>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="180" viewBox="0 0 200 180">
+<title>RUN24 Vigilante</title><g stroke-linejoin="round" stroke-linecap="round">
+<path d="M63 51L83 25L119 24L142 48L145 101L124 128L77 130L54 104Z" fill="#0B0D14" stroke="#35D5C8" stroke-width="6"/>
+<path d="M73 48L93 34L119 38L132 53L129 76L109 92L82 87L68 69Z" fill="#F2E7D3" stroke="#11151F" stroke-width="4"/>
+<circle cx="101" cy="62" r="14" fill="#0B0D14" stroke="#D92E5B" stroke-width="4"/><circle cx="101" cy="62" r="7" fill="#D92E5B"/><circle cx="101" cy="62" r="2.8" fill="#fff"/>
+<path d="M132 74L171 68L189 78L183 91L143 96L130 88Z" fill="#11151F" stroke="#F2E7D3" stroke-width="4"/>
+<path d="M166 72L191 76L197 84L184 90L166 88Z" fill="#D92E5B"/>
+<path d="M67 118L50 145L68 157L86 128M126 124L142 153L160 143L141 113" fill="#11151F" stroke="#F3A712" stroke-width="4"/>
+<path d="M61 98L40 102L35 121L49 128L69 114" fill="#0B0D14" stroke="#35D5C8" stroke-width="4"/>
+<path d="M88 106L111 106L118 122L79 122Z" fill="#31204F"/>
+</g></svg>

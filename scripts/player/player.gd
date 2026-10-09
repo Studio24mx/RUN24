@@ -61,10 +61,15 @@ var phase_rush_duration := 0.18
 var phase_rush_speed := 1250.0
 var phase_hit_ids := {}
 var camera_shake := 0.0
+var visual_time := 0.0
+var recoil_anim := 0.0
 
 @onready var camera: Camera2D = $Camera2D
 @onready var body_visual: Node2D = $VisualRoot
+@onready var authored_sprite: Sprite2D = $VisualRoot/AuthoredSprite
 @onready var core_visual: Polygon2D = $VisualRoot/CoreGlow
+@onready var weapon_pivot: Node2D = $WeaponPivot
+@onready var weapon_sprite: Sprite2D = $WeaponPivot/WeaponSprite
 
 func _ready() -> void:
 	add_to_group("player")
@@ -152,6 +157,8 @@ func _physics_process(delta: float) -> void:
 	if dead:
 		return
 
+	visual_time += delta
+	recoil_anim = maxf(recoil_anim - delta, 0.0)
 	_update_camera_shake(delta)
 	_update_aim_direction()
 	_update_special_direction_buffer(delta)
@@ -362,9 +369,14 @@ func _update_aim_direction() -> void:
 			aim_direction = mouse_aim.normalized()
 	if aim_direction.x != 0.0:
 		facing = signf(aim_direction.x)
+	if is_instance_valid(weapon_pivot):
+		weapon_pivot.rotation = aim_direction.angle()
+		weapon_pivot.position = Vector2(8.0 * facing, -4.0)
+		weapon_sprite.flip_v = aim_direction.x < 0.0
 
 func _shoot() -> void:
 	shot_fired.emit()
+	recoil_anim = 0.12
 	Sfx.play("shoot", -13.0)
 	camera_shake = maxf(camera_shake, 0.8)
 	var aim := aim_direction
@@ -517,20 +529,47 @@ func fall_respawn() -> void:
 		velocity = Vector2.ZERO
 
 func _update_visual() -> void:
-	if phase_rush_left > 0.0:
-		body_visual.scale = Vector2(1.45, 0.62)
-		core_visual.scale = Vector2(1.35, 0.68)
-	elif dash_left > 0.0:
-		body_visual.scale = Vector2(1.28, 0.72)
-		core_visual.scale = Vector2(1.18, 0.75)
-	elif not is_on_floor():
-		if velocity.y < 0.0:
-			body_visual.scale = body_visual.scale.lerp(Vector2(0.9, 1.12), 0.22)
-		else:
-			body_visual.scale = body_visual.scale.lerp(Vector2(1.08, 0.92), 0.22)
-	else:
-		body_visual.scale = body_visual.scale.lerp(Vector2.ONE, 0.3)
-		core_visual.scale = core_visual.scale.lerp(Vector2.ONE, 0.3)
+	var step := sin(visual_time * 15.0)
+	var breathe := sin(visual_time * 3.2)
+	var recoil := clampf(recoil_anim / 0.12, 0.0, 1.0)
 
-	# Mirror the full cutout so the mask, scarf and weapon follow facing direction.
+	if phase_rush_left > 0.0:
+		body_visual.scale = body_visual.scale.lerp(Vector2(1.50, 0.60), 0.45)
+		body_visual.rotation = lerpf(body_visual.rotation, -facing * 0.08, 0.35)
+		body_visual.position.y = -2.0
+		core_visual.scale = core_visual.scale.lerp(Vector2(1.45, 0.65), 0.40)
+	elif dash_left > 0.0:
+		body_visual.scale = body_visual.scale.lerp(Vector2(1.30, 0.72), 0.38)
+		body_visual.rotation = lerpf(body_visual.rotation, -facing * 0.045, 0.30)
+		body_visual.position.y = 1.0
+		core_visual.scale = core_visual.scale.lerp(Vector2(1.20, 0.76), 0.30)
+	elif not is_on_floor():
+		body_visual.position.y = -2.0
+		if velocity.y < 0.0:
+			body_visual.scale = body_visual.scale.lerp(Vector2(0.91, 1.12), 0.24)
+			body_visual.rotation = lerpf(body_visual.rotation, facing * 0.035, 0.22)
+		else:
+			body_visual.scale = body_visual.scale.lerp(Vector2(1.08, 0.92), 0.24)
+			body_visual.rotation = lerpf(body_visual.rotation, -facing * 0.045, 0.22)
+		core_visual.scale = core_visual.scale.lerp(Vector2(1.05, 1.05), 0.22)
+	elif absf(velocity.x) > 35.0:
+		var squash := absf(step) * 0.035
+		body_visual.scale = body_visual.scale.lerp(Vector2(1.0 + squash, 1.0 - squash * 0.75), 0.32)
+		body_visual.position.y = absf(step) * 2.6
+		body_visual.rotation = lerpf(body_visual.rotation, step * 0.018 - facing * 0.018, 0.28)
+		core_visual.scale = core_visual.scale.lerp(Vector2.ONE * (1.0 + absf(step) * 0.05), 0.25)
+	else:
+		body_visual.scale = body_visual.scale.lerp(Vector2(1.0 + breathe * 0.012, 1.0 - breathe * 0.010), 0.22)
+		body_visual.position.y = breathe * 1.2
+		body_visual.rotation = lerpf(body_visual.rotation, breathe * 0.008, 0.20)
+		core_visual.scale = core_visual.scale.lerp(Vector2.ONE * (1.0 + breathe * 0.07), 0.20)
+
+	authored_sprite.position.x = 0.0
+	authored_sprite.position.y = -1.0
+	weapon_pivot.position = Vector2(8.0 * facing, -4.0) - aim_direction.normalized() * recoil * 7.0
+	weapon_pivot.position.y += body_visual.position.y * 0.35
+	weapon_sprite.modulate = Color(1.0, 0.93 + recoil * 0.07, 0.82 + recoil * 0.18, 1.0)
+	core_visual.modulate.a = 0.38 + (sin(visual_time * 6.0) + 1.0) * 0.20
+
+	# Mirror the complete cutout while preserving the authored silhouette.
 	body_visual.scale.x = absf(body_visual.scale.x) * facing

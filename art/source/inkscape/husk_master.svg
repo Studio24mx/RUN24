@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180">
+<title>RUN24 Signal Husk</title><g stroke-linejoin="round" stroke-linecap="round">
+<path d="M60 58L75 33L108 30L128 50L126 86L109 101L75 99L54 81Z" fill="#0B0D14" stroke="#D92E5B" stroke-width="6"/>
+<path d="M67 48L84 38L108 39L119 52L115 73L102 84L79 82L64 69Z" fill="#F2E7D3" stroke="#11151F" stroke-width="4"/>
+<circle cx="83" cy="60" r="8" fill="#0B0D14"/><circle cx="104" cy="60" r="8" fill="#0B0D14"/>
+<circle cx="83" cy="60" r="3" fill="#D92E5B"/><circle cx="104" cy="60" r="3" fill="#D92E5B"/>
+<path d="M90 70L97 70L94 79Z" fill="#0B0D14"/>
+<path d="M72 101L115 100L126 126L113 149L74 151L56 126Z" fill="#11151F" stroke="#D92E5B" stroke-width="5"/>
+<circle cx="92" cy="121" r="13" fill="#0B0D14" stroke="#F2E7D3" stroke-width="3"/><circle cx="92" cy="121" r="7" fill="#D92E5B"/><circle cx="92" cy="121" r="2.5" fill="#fff"/>
+<path d="M59 111L39 119L35 138L51 143L67 126Z" fill="#0B0D14" stroke="#F2E7D3" stroke-width="4"/>
+<path d="M119 110L139 102L151 117L145 134L122 129Z" fill="#0B0D14" stroke="#F2E7D3" stroke-width="4"/>
+<path d="M75 148L71 169L85 171L91 151M110 148L116 170L131 169L124 146" fill="#0B0D14" stroke="#35D5C8" stroke-width="4"/>
+<path d="M69 92L51 83L46 91L63 104" fill="#D92E5B"/>
+</g></svg>

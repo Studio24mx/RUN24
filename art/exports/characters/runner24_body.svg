@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="190" viewBox="0 0 160 190">
+<title>RUN24 Runner Body</title><g stroke-linejoin="round" stroke-linecap="round">
+<path d="M62 68C45 62 32 63 19 53L29 75C40 77 51 79 64 84Z" fill="#D92E5B"/>
+<path d="M29 72C18 74 11 80 5 91C18 89 31 92 45 98Z" fill="#D92E5B" opacity=".86"/>
+<path d="M65 124H81L77 164H59Z" fill="#11151F" stroke="#F2E7D3" stroke-width="3"/>
+<path d="M90 123H106L116 162L98 164Z" fill="#11151F" stroke="#F2E7D3" stroke-width="3"/>
+<path d="M55 159H80L83 171L52 172Z" fill="#F2E7D3" stroke="#11151F" stroke-width="3"/>
+<path d="M96 159L121 158L128 169L96 172Z" fill="#F2E7D3" stroke="#11151F" stroke-width="3"/>
+<path d="M56 78L79 66L108 72L118 99L110 130L70 132L53 111Z" fill="#0B0D14" stroke="#F2E7D3" stroke-width="3"/>
+<path d="M64 82L84 75L101 79L106 93L95 101L72 98Z" fill="#F2E7D3"/>
+<path d="M80 92L90 86L100 92L98 105L89 111L79 104Z" fill="#0B0D14" stroke="#35D5C8" stroke-width="3"/>
+<circle cx="89" cy="98" r="6" fill="#35D5C8"/><circle cx="89" cy="98" r="2.2" fill="#fff"/>
+<path d="M57 38L71 26L99 29L117 44L114 67L95 78L69 71L55 57Z" fill="#F2E7D3" stroke="#0B0D14" stroke-width="4"/>
+<path d="M93 30L114 43L113 63L100 72L86 66L83 45Z" fill="#0B0D14"/>
+<path d="M60 39L66 15L78 33Z" fill="#F2E7D3" stroke="#0B0D14" stroke-width="4"/>
+<path d="M73 33L84 14L89 38Z" fill="#F2E7D3" stroke="#0B0D14" stroke-width="4"/>
+<path d="M93 42L110 45L108 57L94 60L87 52Z" fill="#35D5C8"/><circle cx="102" cy="51" r="3" fill="#fff"/>
+<path d="M62 93L45 102L49 119L64 113" fill="#11151F" stroke="#F2E7D3" stroke-width="3"/>
+<path d="M103 91L116 96L113 111L99 106" fill="#F2E7D3" stroke="#0B0D14" stroke-width="3"/>
+<path d="M66 120C80 126 96 126 107 119" fill="none" stroke="#31204F" stroke-width="5"/>
+</g></svg>

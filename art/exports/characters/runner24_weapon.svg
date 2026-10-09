@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="64" viewBox="0 0 128 64">
+<title>RUN24 Signal Weapon</title><g stroke-linejoin="round" stroke-linecap="round">
+<path d="M8 24L72 18L101 27L96 42L38 45L10 38Z" fill="#11151F" stroke="#F2E7D3" stroke-width="4"/>
+<path d="M53 20L76 21L84 31L77 41L54 42L46 31Z" fill="#F3A712" stroke="#0B0D14" stroke-width="3"/>
+<circle cx="66" cy="31" r="5" fill="#FFFFFF"/>
+<path d="M88 24L116 24L126 32L115 40L89 39Z" fill="#0B0D14" stroke="#D92E5B" stroke-width="4"/>
+<path d="M31 41L48 45L43 61L29 57Z" fill="#0B0D14" stroke="#F2E7D3" stroke-width="3"/>
+<path d="M16 26L4 18L2 28L12 34Z" fill="#35D5C8" opacity=".75"/>
+</g></svg>
