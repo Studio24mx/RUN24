@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="460" viewBox="0 0 300 460">
+<title>RUN24 Cathedral Signal Window</title><g stroke-linejoin="round" stroke-linecap="round">
+<path d="M34 446V174C34 92 82 27 150 18C218 27 266 92 266 174V446Z" fill="#080C12" stroke="#263A47" stroke-width="11"/>
+<path d="M61 442V181C61 116 98 65 150 55C202 65 239 116 239 181V442Z" fill="#10131B" stroke="#D92E5B" stroke-width="6"/>
+<path d="M88 425V198C88 145 113 103 150 91C187 103 212 145 212 198V425Z" fill="#071A1D" stroke="#35D5C8" stroke-width="5"/>
+<circle cx="150" cy="166" r="51" fill="#150A13" stroke="#F2E7D3" stroke-width="6"/>
+<circle cx="150" cy="166" r="34" fill="#2A0B1A" stroke="#D92E5B" stroke-width="5"/>
+<path d="M150 126L168 153L199 157L176 179L181 210L150 194L119 210L124 179L101 157L132 153Z" fill="#F3A712" opacity=".78"/>
+<circle cx="150" cy="166" r="9" fill="#35D5C8"/><circle cx="150" cy="166" r="3" fill="#fff"/>
+<path d="M76 262H224M76 317H224M76 372H224" stroke="#263A47" stroke-width="8"/>
+<path d="M108 218V426M150 218V426M192 218V426" stroke="#D92E5B" stroke-opacity=".38" stroke-width="4"/>
+<path d="M34 446H266" stroke="#F3A712" stroke-opacity=".65" stroke-width="7"/>
+</g></svg>

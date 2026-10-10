@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="320" viewBox="0 0 360 320">
+<title>RUN24 Floodway Pump</title><g stroke-linejoin="round" stroke-linecap="round">
+<path d="M38 300V132L78 98H249L287 132V300Z" fill="#0B1118" stroke="#27414A" stroke-width="9"/>
+<circle cx="168" cy="185" r="74" fill="#071014" stroke="#35D5C8" stroke-width="7"/>
+<circle cx="168" cy="185" r="49" fill="#11151F" stroke="#D92E5B" stroke-width="6"/>
+<circle cx="168" cy="185" r="19" fill="#F3A712" stroke="#F2E7D3" stroke-width="5"/>
+<path d="M168 113V257M96 185H240M117 134L219 236M219 134L117 236" stroke="#263A47" stroke-width="8"/>
+<path d="M20 153H69V190H20L7 172Z" fill="#11151F" stroke="#35D5C8" stroke-width="6"/>
+<path d="M267 144H334V184H267Z" fill="#11151F" stroke="#D92E5B" stroke-width="6"/>
+<path d="M334 153H353V265H325V184" fill="none" stroke="#263A47" stroke-width="12"/>
+<path d="M70 86V49H104V101M232 99V45H267V116" fill="none" stroke="#263A47" stroke-width="13"/>
+<path d="M86 41L101 18L116 41M248 37L264 14L280 37" fill="#F3A712"/>
+<path d="M55 279H278" stroke="#F2E7D3" stroke-opacity=".55" stroke-width="5"/>
+</g></svg>

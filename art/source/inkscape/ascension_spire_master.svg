@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="520" viewBox="0 0 300 520">
+<title>RUN24 Ascension Spire</title><g stroke-linejoin="round" stroke-linecap="round">
+<path d="M150 15L199 104L223 244L205 501H95L77 244L101 104Z" fill="#080C12" stroke="#263A47" stroke-width="10"/>
+<path d="M150 48L176 116L190 248L179 475H121L110 248L124 116Z" fill="#11151F" stroke="#D92E5B" stroke-width="5"/>
+<path d="M150 76V463" stroke="#35D5C8" stroke-width="6"/>
+<path d="M94 161L150 128L206 161M84 239L150 205L216 239M79 325L150 285L221 325M91 407L150 372L209 407" fill="none" stroke="#263A47" stroke-width="9"/>
+<circle cx="150" cy="205" r="31" fill="#0B1118" stroke="#F2E7D3" stroke-width="5"/>
+<path d="M150 181L169 205L150 229L131 205Z" fill="#F3A712"/><circle cx="150" cy="205" r="6" fill="#fff"/>
+<path d="M150 14L136 59H164Z" fill="#D92E5B"/>
+<path d="M78 244L41 284L76 303M222 244L259 284L224 303" fill="none" stroke="#35D5C8" stroke-width="6"/>
+<path d="M121 478L105 510M179 478L195 510" stroke="#D92E5B" stroke-width="8"/>
+</g></svg>

@@ -11,7 +11,7 @@ var trail_left := 0.0
 @onready var authored_sprite: Sprite2D = $AuthoredSprite
 
 func _ready() -> void:
-	z_index = 4
+	z_index = 5
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(player):

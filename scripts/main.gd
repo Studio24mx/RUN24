@@ -9,6 +9,11 @@ const XOLO_SCENE := preload("res://scenes/world/xolo.tscn")
 const MOVING_PLATFORM_SCRIPT := preload("res://scripts/world/moving_platform.gd")
 const SIGNAL_ARCH_TEXTURE := preload("res://art/exports/environment/signal_arch.svg")
 const RELAY_SHRINE_TEXTURE := preload("res://art/exports/environment/relay_shrine.svg")
+const CATHEDRAL_WINDOW_TEXTURE := preload("res://art/exports/environment/cathedral_window.svg")
+const FLOOD_PUMP_TEXTURE := preload("res://art/exports/environment/flood_pump.svg")
+const MARKET_TOTEM_TEXTURE := preload("res://art/exports/environment/market_totem.svg")
+const ASCENSION_SPIRE_TEXTURE := preload("res://art/exports/environment/ascension_spire.svg")
+const VISUAL_DIRECTOR_SCRIPT := preload("res://scripts/system/visual_director.gd")
 
 const LEVEL_END_X := 16000.0
 const BOSS_TRIGGER_X := 14620.0
@@ -49,6 +54,9 @@ var start_label: Label
 var minimap_dot: ColorRect
 var health_pips := []
 var core_pips := []
+var zone_title_label: Label
+var current_zone_index := -1
+var controls_hint_left := 0.0
 var minimap_origin := Vector2(760, 20)
 var minimap_width := 150.0
 
@@ -56,6 +64,9 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_background()
 	_build_world()
+	var visual_director := Node.new()
+	visual_director.set_script(VISUAL_DIRECTOR_SCRIPT)
+	add_child(visual_director)
 	_spawn_player()
 	_spawn_xolo()
 	_build_hud()
@@ -86,6 +97,8 @@ func _process(delta: float) -> void:
 	_update_tutorial(x)
 	_update_checkpoints(x)
 	_update_minimap()
+	_update_room_presentation(x)
+	_update_controls_hint(delta)
 
 	if not boss_started and x > BOSS_TRIGGER_X:
 		boss_started = true
@@ -98,26 +111,42 @@ func _process(delta: float) -> void:
 		Sfx.start_boss_music()
 		_toast("THE IDOL // FIRST NODE OF THE DEAD-NET")
 
-	if x < 1600.0:
-		room_label.text = "01/10 · ENTRY"
-	elif x < 3200.0:
-		room_label.text = "02/10 · CIRCUIT"
-	elif x < 4800.0:
-		room_label.text = "03/10 · CATHEDRAL"
-	elif x < 6400.0:
-		room_label.text = "04/10 · FLOODWAY"
-	elif x < 8000.0:
-		room_label.text = "05/10 · TRANSIT"
-	elif x < 9600.0:
-		room_label.text = "06/10 · HOLLOW MARKET"
-	elif x < 11200.0:
-		room_label.text = "07/10 · CARGADOR"
-	elif x < 12800.0:
-		room_label.text = "08/10 · BLACK SIGNAL"
-	elif x < BOSS_GATE_X:
-		room_label.text = "09/10 · ASCENSION"
-	else:
-		room_label.text = "10/10 · THE IDOL"
+
+func _update_room_presentation(x: float) -> void:
+	var edges := [1600.0, 3200.0, 4800.0, 6400.0, 8000.0, 9600.0, 11200.0, 12800.0, BOSS_GATE_X]
+	var names := ["ENTRY", "CIRCUIT", "CATHEDRAL", "FLOODWAY", "TRANSIT", "HOLLOW MARKET", "CARGADOR", "BLACK SIGNAL", "ASCENSION", "THE IDOL"]
+	var zone := 9
+	for i in range(edges.size()):
+		if x < edges[i]:
+			zone = i
+			break
+	room_label.text = "%02d/10 · %s" % [zone + 1, names[zone]]
+	if zone != current_zone_index:
+		_show_zone_title(zone)
+
+func _show_zone_title(zone: int) -> void:
+	current_zone_index = zone
+	if not is_instance_valid(zone_title_label):
+		return
+	var names := ["ENTRY", "CIRCUIT", "CATHEDRAL", "FLOODWAY", "TRANSIT", "HOLLOW MARKET", "CARGADOR", "BLACK SIGNAL", "ASCENSION", "THE IDOL"]
+	zone_title_label.text = "%02d  //  %s" % [zone + 1, names[zone]]
+	zone_title_label.modulate = Color(1, 1, 1, 0)
+	zone_title_label.scale = Vector2(0.92, 0.92)
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(zone_title_label, "modulate:a", 1.0, 0.16)
+	tween.tween_property(zone_title_label, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.chain().tween_interval(0.75)
+	tween.chain().tween_property(zone_title_label, "modulate:a", 0.0, 0.50)
+
+func _update_controls_hint(delta: float) -> void:
+	if not is_instance_valid(help_label):
+		return
+	if controls_hint_left <= 0.0:
+		help_label.modulate.a = move_toward(help_label.modulate.a, 0.0, delta * 1.6)
+		return
+	controls_hint_left = maxf(controls_hint_left - delta, 0.0)
+	help_label.modulate.a = 0.78
 
 func _unhandled_input(event: InputEvent) -> void:
 	var pressed := false
@@ -149,6 +178,8 @@ func _start_run() -> void:
 	run_started = true
 	start_overlay.visible = false
 	get_tree().paused = false
+	controls_hint_left = 9.0
+	_show_zone_title(0)
 	_toast("MOVE // A-D OR L-STICK  ·  JUMP // SPACE OR A")
 
 func _toggle_pause() -> void:
@@ -201,10 +232,10 @@ func _update_checkpoints(x: float) -> void:
 func _build_background() -> void:
 	# Signalpunk value blocks: obsidian dominates; jade/cochineal are functional accents.
 	var colors := [
-		Color(0.018, 0.024, 0.038),
-		Color(0.028, 0.022, 0.045),
-		Color(0.018, 0.040, 0.046),
-		Color(0.045, 0.018, 0.035)
+		Color(0.018, 0.024, 0.038, 0.93),
+		Color(0.028, 0.022, 0.045, 0.92),
+		Color(0.018, 0.040, 0.046, 0.92),
+		Color(0.045, 0.018, 0.035, 0.92)
 	]
 	for i in range(13):
 		_add_back_rect(Vector2(650.0 + i * 1300.0, 360.0), Vector2(1300, 720), colors[i % colors.size()])
@@ -244,8 +275,19 @@ func _build_background() -> void:
 
 	for arch_x in [1450.0, 4720.0, 8160.0, 11380.0, 14580.0]:
 		_add_background_prop(SIGNAL_ARCH_TEXTURE, Vector2(arch_x, 505), Vector2(0.72, 0.72), Color(1, 1, 1, 0.62), -5)
-	for shrine_x in [680.0, 2580.0, 3890.0, 5980.0, 7350.0, 9040.0, 10480.0, 12150.0, 13640.0, 15420.0]:
+	for shrine_x in [680.0, 2580.0, 7350.0, 10480.0, 12150.0, 15420.0]:
 		_add_background_prop(RELAY_SHRINE_TEXTURE, Vector2(shrine_x, 535), Vector2(0.56, 0.56), Color(1, 1, 1, 0.56), -4)
+
+	# District-specific authored landmarks give every act its own silhouette.
+	for cathedral_x in [3500.0, 4270.0]:
+		_add_background_prop(CATHEDRAL_WINDOW_TEXTURE, Vector2(cathedral_x, 470), Vector2(0.66, 0.66), Color(1, 1, 1, 0.72), -5)
+	for pump_x in [5250.0, 6060.0]:
+		_add_background_prop(FLOOD_PUMP_TEXTURE, Vector2(pump_x, 540), Vector2(0.62, 0.62), Color(0.88, 1.0, 1.0, 0.68), -4)
+	for market_x in [8380.0, 9200.0]:
+		_add_background_prop(MARKET_TOTEM_TEXTURE, Vector2(market_x, 505), Vector2(0.64, 0.64), Color(1.0, 0.88, 0.90, 0.74), -4)
+	_add_background_prop(MARKET_TOTEM_TEXTURE, Vector2(11820, 500), Vector2(0.72, 0.72), Color(0.62, 0.38, 0.48, 0.64), -4)
+	for spire_x in [13280.0, 14020.0]:
+		_add_background_prop(ASCENSION_SPIRE_TEXTURE, Vector2(spire_x, 445), Vector2(0.70, 0.70), Color(0.92, 0.95, 1.0, 0.76), -5)
 
 func _add_background_prop(texture: Texture2D, pos: Vector2, prop_scale: Vector2, tint: Color, layer: int) -> void:
 	var sprite := Sprite2D.new()
@@ -568,11 +610,59 @@ func _make_platform(pos: Vector2, size: Vector2, color: Color, one_way: bool = f
 	visual.color = color
 	body.add_child(visual)
 
+	var top_cap := Polygon2D.new()
+	top_cap.polygon = PackedVector2Array([
+		Vector2(-size.x * 0.5, -size.y * 0.5),
+		Vector2(size.x * 0.5, -size.y * 0.5),
+		Vector2(size.x * 0.5 - 7, -size.y * 0.5 + 8),
+		Vector2(-size.x * 0.5 + 7, -size.y * 0.5 + 8)
+	])
+	top_cap.color = Color(0.12, 0.19, 0.22, 0.95)
+	body.add_child(top_cap)
+
 	var edge := Line2D.new()
 	edge.points = PackedVector2Array([Vector2(-size.x * 0.5, -size.y * 0.5), Vector2(size.x * 0.5, -size.y * 0.5)])
 	edge.width = 3.0
-	edge.default_color = Color(0.20, 0.84, 0.78, 0.68)
+	edge.default_color = Color(0.20, 0.84, 0.78, 0.88)
 	body.add_child(edge)
+
+	var lower_edge := Line2D.new()
+	lower_edge.points = PackedVector2Array([
+		Vector2(-size.x * 0.46, size.y * 0.5 - 5),
+		Vector2(size.x * 0.46, size.y * 0.5 - 5)
+	])
+	lower_edge.width = 2.0
+	lower_edge.default_color = Color(0.85, 0.12, 0.29, 0.42)
+	body.add_child(lower_edge)
+
+	if one_way:
+		var bracket := Polygon2D.new()
+		bracket.polygon = PackedVector2Array([
+			Vector2(-22, size.y * 0.5), Vector2(22, size.y * 0.5),
+			Vector2(13, size.y * 0.5 + 19), Vector2(0, size.y * 0.5 + 27),
+			Vector2(-13, size.y * 0.5 + 19)
+		])
+		bracket.color = Color(0.025, 0.04, 0.055, 0.94)
+		bracket.z_index = -1
+		body.add_child(bracket)
+		var bracket_rune := Line2D.new()
+		bracket_rune.points = PackedVector2Array([
+			Vector2(-8, size.y * 0.5 + 9), Vector2(0, size.y * 0.5 + 17),
+			Vector2(8, size.y * 0.5 + 9)
+		])
+		bracket_rune.width = 2.0
+		bracket_rune.default_color = Color(0.95, 0.61, 0.08, 0.62)
+		body.add_child(bracket_rune)
+	else:
+		var foundation := Polygon2D.new()
+		foundation.polygon = PackedVector2Array([
+			Vector2(-size.x * 0.5, size.y * 0.10),
+			Vector2(size.x * 0.5, size.y * 0.10),
+			Vector2(size.x * 0.5, size.y * 0.5),
+			Vector2(-size.x * 0.5, size.y * 0.5)
+		])
+		foundation.color = Color(0.025, 0.032, 0.045, 0.72)
+		body.add_child(foundation)
 
 	# Authored-looking modular surface language: ribs, seams and signal inlays.
 	if size.x >= 150.0:
@@ -815,26 +905,20 @@ func _build_hud() -> void:
 
 	var top_panel := ColorRect.new()
 	top_panel.position = Vector2.ZERO
-	top_panel.size = Vector2(1280, 62)
-	top_panel.color = Color(0.015, 0.020, 0.032, 0.90)
+	top_panel.size = Vector2(1280, 56)
+	top_panel.color = Color(0.015, 0.020, 0.032, 0.76)
 	hud.add_child(top_panel)
 
 	var top_accent := ColorRect.new()
-	top_accent.position = Vector2(0, 58)
-	top_accent.size = Vector2(1280, 3)
+	top_accent.position = Vector2(0, 53)
+	top_accent.size = Vector2(1280, 2)
 	top_accent.color = Color(0.20, 0.84, 0.78, 0.52)
 	hud.add_child(top_accent)
 
-	var bottom_panel := ColorRect.new()
-	bottom_panel.position = Vector2(0, 646)
-	bottom_panel.size = Vector2(1280, 74)
-	bottom_panel.color = Color(0.015, 0.020, 0.032, 0.86)
-	hud.add_child(bottom_panel)
-
 	var bottom_accent := ColorRect.new()
-	bottom_accent.position = Vector2(0, 646)
+	bottom_accent.position = Vector2(0, 716)
 	bottom_accent.size = Vector2(1280, 2)
-	bottom_accent.color = Color(0.85, 0.12, 0.29, 0.45)
+	bottom_accent.color = Color(0.85, 0.12, 0.29, 0.28)
 	hud.add_child(bottom_accent)
 
 	var signal_tag := Label.new()
@@ -916,11 +1000,23 @@ func _build_hud() -> void:
 	hud.add_child(room_label)
 
 	help_label = Label.new()
-	help_label.position = Vector2(22, 654)
-	help_label.size = Vector2(1180, 60)
-	help_label.add_theme_font_size_override("font_size", 13)
-	help_label.add_theme_color_override("font_color", Color(0.78, 0.82, 0.84, 0.92))
+	help_label.position = Vector2(24, 684)
+	help_label.size = Vector2(1220, 26)
+	help_label.add_theme_font_size_override("font_size", 11)
+	help_label.add_theme_color_override("font_color", Color(0.80, 0.84, 0.86, 0.78))
 	hud.add_child(help_label)
+
+	zone_title_label = Label.new()
+	zone_title_label.position = Vector2(300, 154)
+	zone_title_label.size = Vector2(680, 64)
+	zone_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	zone_title_label.add_theme_font_size_override("font_size", 38)
+	zone_title_label.add_theme_color_override("font_color", Color(0.95, 0.90, 0.82))
+	zone_title_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.85))
+	zone_title_label.add_theme_constant_override("shadow_offset_x", 3)
+	zone_title_label.add_theme_constant_override("shadow_offset_y", 3)
+	zone_title_label.modulate.a = 0.0
+	hud.add_child(zone_title_label)
 
 	toast_label = Label.new()
 	toast_label.position = Vector2(340, 90)
@@ -996,9 +1092,9 @@ func _update_controls(gamepad: bool) -> void:
 	if not is_instance_valid(help_label):
 		return
 	if gamepad:
-		help_label.text = "L-STICK/DPAD MOVER · A/CROSS SALTAR · B/CIRCLE/RB DASH · R-STICK APUNTAR · RT/R2 DISPARAR · DOWN BAJAR\nY ESPECIAL · UP+Y SKY · DOWN+Y GROUND · DASH+Y PHASE · LB NOVA PULSE"
+		help_label.text = "L-STICK MOVE  ·  A JUMP  ·  B/RB DASH  ·  R-STICK AIM  ·  RT FIRE  ·  Y SPECIAL  ·  START PAUSE"
 	else:
-		help_label.text = "A/D MOVER · ESPACIO SALTAR · SHIFT DASH · MOUSE DISPARAR/APUNTAR · S/DOWN BAJAR\nQ ESPECIAL · W+Q SKY · S+Q GROUND · DASH+Q PHASE · E NOVA PULSE"
+		help_label.text = "A/D MOVE  ·  SPACE JUMP  ·  SHIFT DASH  ·  MOUSE AIM/FIRE  ·  Q SPECIAL  ·  E NOVA  ·  ESC PAUSE"
 
 func _update_minimap() -> void:
 	if not is_instance_valid(minimap_dot) or not is_instance_valid(player):

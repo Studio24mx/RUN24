@@ -63,6 +63,8 @@ var phase_hit_ids := {}
 var camera_shake := 0.0
 var visual_time := 0.0
 var recoil_anim := 0.0
+var dash_trail_left := 0.0
+var last_grounded := false
 
 @onready var camera: Camera2D = $Camera2D
 @onready var body_visual: Node2D = $VisualRoot
@@ -159,6 +161,7 @@ func _physics_process(delta: float) -> void:
 
 	visual_time += delta
 	recoil_anim = maxf(recoil_anim - delta, 0.0)
+	dash_trail_left = maxf(dash_trail_left - delta, 0.0)
 	_update_camera_shake(delta)
 	_update_aim_direction()
 	_update_special_direction_buffer(delta)
@@ -209,7 +212,11 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector2(facing * phase_rush_speed, 0.0)
 		_damage_phase_rush_targets()
 		_update_visual()
+		if dash_trail_left <= 0.0:
+			_spawn_dash_ghost(true)
+			dash_trail_left = 0.035
 		move_and_slide()
+		_post_move_feedback()
 		queue_redraw()
 		return
 
@@ -217,7 +224,11 @@ func _physics_process(delta: float) -> void:
 		dash_left -= delta
 		velocity = Vector2(facing * dash_speed, 0.0)
 		_update_visual()
+		if dash_trail_left <= 0.0:
+			_spawn_dash_ghost(false)
+			dash_trail_left = 0.045
 		move_and_slide()
+		_post_move_feedback()
 		queue_redraw()
 		return
 
@@ -243,7 +254,33 @@ func _physics_process(delta: float) -> void:
 
 	_update_visual()
 	move_and_slide()
+	_post_move_feedback()
 	queue_redraw()
+
+func _post_move_feedback() -> void:
+	var grounded_now := is_on_floor()
+	if grounded_now and not last_grounded and visual_time > 0.20:
+		body_visual.scale = Vector2(facing * 1.10, 0.84)
+		camera_shake = maxf(camera_shake, 1.15)
+		_spawn_fx(global_position + Vector2(0, 27), Color(0.95, 0.90, 0.82), 18.0, 0.13, 7)
+	last_grounded = grounded_now
+
+func _spawn_dash_ghost(is_phase: bool) -> void:
+	if not is_instance_valid(authored_sprite):
+		return
+	var ghost := Sprite2D.new()
+	ghost.texture = authored_sprite.texture
+	ghost.z_index = 5
+	ghost.modulate = Color(1.0, 0.34, 0.70, 0.34) if is_phase else Color(0.20, 0.84, 0.78, 0.24)
+	get_tree().current_scene.add_child(ghost)
+	ghost.global_position = global_position + body_visual.position
+	ghost.rotation = body_visual.rotation
+	ghost.scale = Vector2(authored_sprite.scale.x * body_visual.scale.x, authored_sprite.scale.y * body_visual.scale.y)
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(ghost, "modulate:a", 0.0, 0.18)
+	tween.tween_property(ghost, "scale", ghost.scale * Vector2(1.08, 0.92), 0.18)
+	tween.chain().tween_callback(ghost.queue_free)
 
 func _update_camera_shake(delta: float) -> void:
 	camera_shake = move_toward(camera_shake, 0.0, 15.0 * delta)

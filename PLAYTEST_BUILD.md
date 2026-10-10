@@ -1,12 +1,23 @@
 # RUN24 — Final Prototype / Level 1
 
-Build: SIGNALPUNK Final Prototype 1
+Build: SIGNALPUNK Visual Complete Pass 2
 Target run: 12–20 minutes
 Internal resolution: 1280x720
 Toolchain: Godot 4.7.2 + Krita + Inkscape. 100% free/open-source.
 
 ## Purpose
 This is the final Level 1 prototype intended for external player testing before expanding RUN24 into the full game. It is deliberately one long authored run rather than a collection of disconnected test rooms.
+
+## Visual Complete Pass 2
+- Characters enlarged for production-readable silhouettes while preserving approved collisions and movement.
+- RUNNER 24 dash/Phase Rush afterimages, landing impact FX and tighter camera framing.
+- Full-screen Signalpunk sky gradient, subtle grading, vignette, scanline/grain treatment and atmospheric signal/ash/fog particles.
+- Persistent bottom instruction bar removed; controls now appear as a temporary unobtrusive hint.
+- Large animated zone title cards on district transitions.
+- Platforms upgraded with top caps, lower signal rims, brackets and foundation panels.
+- Vigilante/Centinela fire telegraphs added without changing their attack timing.
+- New authored district props: Cathedral Signal Window, Floodway Pump, Hollow Market Totem and Ascension Spire.
+- THE IDOL visual scale increased to read as a true boss.
 
 ## Level structure
 1. ENTRY — movement, aiming and first Signal Husk/Vigilante encounters.

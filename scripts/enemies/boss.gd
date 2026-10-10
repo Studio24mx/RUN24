@@ -53,7 +53,7 @@ func _physics_process(delta: float) -> void:
 	var phase_energy := 1.0 - ratio
 	if is_instance_valid(authored_body):
 		authored_body.rotation = sin(time * (1.5 + phase_energy * 2.0)) * (0.012 + phase_energy * 0.025)
-		var pulse_scale := 0.45 + sin(time * 4.0) * (0.006 + phase_energy * 0.012)
+		var pulse_scale := 0.58 + sin(time * 4.0) * (0.009 + phase_energy * 0.016)
 		authored_body.scale = Vector2.ONE * pulse_scale
 	var movement_speed := 1.4 if ratio > 0.5 else 2.0
 	global_position.x = arena_center_x + sin(time * movement_speed) * 260.0

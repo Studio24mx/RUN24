@@ -8,5 +8,5 @@ script = ExtResource("1")
 
 [node name="AuthoredSprite" type="Sprite2D" parent="."]
 texture = ExtResource("2")
-scale = Vector2(0.34, 0.34)
+scale = Vector2(0.42, 0.42)
 position = Vector2(0, -4)

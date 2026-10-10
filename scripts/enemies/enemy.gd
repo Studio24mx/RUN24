@@ -37,22 +37,22 @@ func _ready() -> void:
 		"walker":
 			max_health = 4
 			move_speed = 135.0
-			visual_sprite = _add_authored_sprite(HUSK_TEXTURE, Vector2(0.39, 0.39), Vector2(0, -8))
+			visual_sprite = _add_authored_sprite(HUSK_TEXTURE, Vector2(0.52, 0.52), Vector2(0, -12))
 		"turret":
 			max_health = 6
 			move_speed = 0.0
 			fire_interval = 1.15
-			visual_sprite = _add_authored_sprite(VIGILANTE_TEXTURE, Vector2(0.36, 0.36), Vector2(0, -10))
+			visual_sprite = _add_authored_sprite(VIGILANTE_TEXTURE, Vector2(0.48, 0.48), Vector2(0, -14))
 		"flyer":
 			max_health = 5
 			move_speed = 105.0
 			fire_interval = 1.55
-			visual_sprite = _add_authored_sprite(CENTINELA_TEXTURE, Vector2(0.34, 0.34), Vector2(0, -5))
+			visual_sprite = _add_authored_sprite(CENTINELA_TEXTURE, Vector2(0.44, 0.44), Vector2(0, -7))
 		"charger":
 			max_health = 18
 			move_speed = 90.0
 			fire_interval = 99.0
-			visual_sprite = _add_authored_sprite(CHARGER_TEXTURE, Vector2(0.38, 0.38), Vector2(0, -5))
+			visual_sprite = _add_authored_sprite(CHARGER_TEXTURE, Vector2(0.48, 0.48), Vector2(0, -8))
 			visual_sprite.name = "ChargerArt"
 			var charger_shape = $CollisionShape2D.shape.duplicate()
 			charger_shape.size = Vector2(72, 58)
@@ -83,6 +83,7 @@ func _physics_process(delta: float) -> void:
 	visual_time += delta
 	recoil_left = maxf(recoil_left - delta, 0.0)
 	fire_timer -= delta
+	queue_redraw()
 	match enemy_type:
 		"walker":
 			if not is_on_floor():
@@ -142,27 +143,27 @@ func _update_authored_visual() -> void:
 			if absf(velocity.x) > 4.0:
 				facing = signf(velocity.x)
 			visual_sprite.scale.x = absf(visual_sprite.scale.x) * facing
-			visual_sprite.position.y = -8.0 + sin(visual_time * 12.0) * 2.4
+			visual_sprite.position.y = -12.0 + sin(visual_time * 12.0) * 3.2
 			visual_sprite.rotation = sin(visual_time * 12.0) * 0.035
 		"turret":
 			var kick := 7.0 * clampf(recoil_left / 0.16, 0.0, 1.0)
-			visual_sprite.position = Vector2(-kick, -10.0 + sin(visual_time * 2.4) * 1.3)
+			visual_sprite.position = Vector2(-kick, -14.0 + sin(visual_time * 2.4) * 1.8)
 			visual_sprite.rotation = sin(visual_time * 1.8) * 0.008
 		"flyer":
 			if absf(velocity.x) > 2.0:
 				facing = signf(velocity.x)
 			visual_sprite.scale.x = absf(visual_sprite.scale.x) * facing
-			visual_sprite.scale.y = 0.34 + sin(visual_time * 10.0) * 0.018
+			visual_sprite.scale.y = 0.44 + sin(visual_time * 10.0) * 0.022
 			visual_sprite.rotation = clampf(velocity.x / 900.0, -0.10, 0.10)
 		"charger":
 			visual_sprite.scale.x = absf(visual_sprite.scale.x) * facing
 			if charge_left > 0.0:
-				visual_sprite.scale.y = lerpf(visual_sprite.scale.y, 0.32, 0.30)
-				visual_sprite.scale.x = facing * 0.46
+				visual_sprite.scale.y = lerpf(visual_sprite.scale.y, 0.40, 0.30)
+				visual_sprite.scale.x = facing * 0.58
 				visual_sprite.rotation = -facing * 0.055
 			else:
-				visual_sprite.scale.y = lerpf(visual_sprite.scale.y, 0.38, 0.18)
-				visual_sprite.scale.x = facing * 0.38
+				visual_sprite.scale.y = lerpf(visual_sprite.scale.y, 0.48, 0.18)
+				visual_sprite.scale.x = facing * 0.48
 				visual_sprite.rotation = sin(visual_time * 5.0) * 0.018
 
 func _damage_player_on_contact(player: Node2D, amount: int = 1, radius: float = 48.0, push_force: float = 420.0) -> void:
@@ -226,12 +227,17 @@ func _draw() -> void:
 			aura_radius = 60.0 + sin(visual_time * 8.0) * 4.0
 			aura_color = cochineal
 		draw_circle(Vector2(0, -5), aura_radius, Color(aura_color.r, aura_color.g, aura_color.b, 0.06))
+		if enemy_type in ["turret", "flyer"] and fire_timer > 0.0 and fire_timer < 0.30:
+			var charge := 1.0 - clampf(fire_timer / 0.30, 0.0, 1.0)
+			var telegraph_color := Color(0.95, 0.61, 0.08, 0.30 + charge * 0.62)
+			draw_arc(Vector2(0, -7), 34.0 + charge * 10.0, -PI * 0.85, PI * 0.85, 20, telegraph_color, 3.0 + charge * 2.0)
+			draw_circle(Vector2(0, -7), 4.0 + charge * 5.0, telegraph_color)
 		if enemy_type == "charger" and charge_left > 0.0:
 			var charge_pulse := (sin(visual_time * 18.0) + 1.0) * 0.5
 			draw_arc(Vector2(0, -5), 62.0 + charge_pulse * 5.0, -1.2, 1.2, 22, cochineal, 4.0)
 			draw_line(Vector2(-facing * 92.0, 4), Vector2(-facing * 48.0, 4), gold, 5.0)
 		var authored_bar_width := 72.0 if enemy_type == "charger" else 48.0
-		var authored_bar_y := -62.0 if enemy_type == "charger" else -48.0
+		var authored_bar_y := -68.0 if enemy_type == "charger" else -58.0
 		draw_rect(Rect2(-authored_bar_width * 0.5, authored_bar_y, authored_bar_width, 4), Color(0.02, 0.025, 0.04, 0.92))
 		draw_rect(Rect2(-authored_bar_width * 0.5, authored_bar_y, authored_bar_width * ratio, 4), cochineal if ratio < 0.5 else jade)
 		return
