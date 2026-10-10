@@ -1,0 +1,105 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://scripts/player/runner24_rig.gd" id="1_rig"]
+[ext_resource type="Texture2D" path="res://art/game/characters/runner24/runtime/scarf_back.png" id="2_scarf_back"]
+[ext_resource type="Texture2D" path="res://art/game/characters/runner24/runtime/leg_back.png" id="3_leg_back"]
+[ext_resource type="Texture2D" path="res://art/game/characters/runner24/runtime/arm_back.png" id="4_arm_back"]
+[ext_resource type="Texture2D" path="res://art/game/characters/runner24/runtime/torso.png" id="5_torso"]
+[ext_resource type="Texture2D" path="res://art/game/characters/runner24/runtime/pelvis.png" id="6_pelvis"]
+[ext_resource type="Texture2D" path="res://art/game/characters/runner24/runtime/leg_front.png" id="7_leg_front"]
+[ext_resource type="Texture2D" path="res://art/game/characters/runner24/runtime/head.png" id="8_head"]
+[ext_resource type="Texture2D" path="res://art/game/characters/runner24/runtime/core.png" id="9_core"]
+[ext_resource type="Texture2D" path="res://art/game/characters/runner24/runtime/arm_front.png" id="10_arm_front"]
+[ext_resource type="Texture2D" path="res://art/game/characters/runner24/runtime/scarf_front.png" id="11_scarf_front"]
+[ext_resource type="Texture2D" path="res://art/game/characters/runner24/runtime/weapon.png" id="12_weapon"]
+
+[node name="Runner24Rig" type="Node2D"]
+scale = Vector2(0.55, 0.55)
+script = ExtResource("1_rig")
+
+[node name="BodyFlip" type="Node2D" parent="."]
+
+[node name="BodyRig" type="Node2D" parent="BodyFlip"]
+
+[node name="Root" type="Node2D" parent="BodyFlip/BodyRig"]
+
+[node name="PelvisBone" type="Node2D" parent="BodyFlip/BodyRig/Root"]
+position = Vector2(0, -4)
+
+[node name="Pelvis" type="Sprite2D" parent="BodyFlip/BodyRig/Root/PelvisBone"]
+texture = ExtResource("6_pelvis")
+position = Vector2(-3.3, -1.5)
+z_index = 1
+
+[node name="LegBackBone" type="Node2D" parent="BodyFlip/BodyRig/Root/PelvisBone"]
+position = Vector2(-16, -2)
+
+[node name="LegBack" type="Sprite2D" parent="BodyFlip/BodyRig/Root/PelvisBone/LegBackBone"]
+texture = ExtResource("3_leg_back")
+position = Vector2(16.1, 17.4)
+z_index = -3
+
+[node name="LegFrontBone" type="Node2D" parent="BodyFlip/BodyRig/Root/PelvisBone"]
+position = Vector2(14, 7)
+
+[node name="LegFront" type="Sprite2D" parent="BodyFlip/BodyRig/Root/PelvisBone/LegFrontBone"]
+texture = ExtResource("7_leg_front")
+position = Vector2(18.5, 28.2)
+z_index = 2
+
+[node name="TorsoBone" type="Node2D" parent="BodyFlip/BodyRig/Root"]
+position = Vector2(0, -20)
+
+[node name="Torso" type="Sprite2D" parent="BodyFlip/BodyRig/Root/TorsoBone"]
+texture = ExtResource("5_torso")
+position = Vector2(-0.8, -43.7)
+
+[node name="Core" type="Sprite2D" parent="BodyFlip/BodyRig/Root/TorsoBone"]
+texture = ExtResource("9_core")
+position = Vector2(0, -50.4)
+z_index = 4
+
+[node name="HeadBone" type="Node2D" parent="BodyFlip/BodyRig/Root/TorsoBone"]
+position = Vector2(-3, -90)
+
+[node name="Head" type="Sprite2D" parent="BodyFlip/BodyRig/Root/TorsoBone/HeadBone"]
+texture = ExtResource("8_head")
+position = Vector2(2.4, -49.8)
+z_index = 3
+
+[node name="ArmBackBone" type="Node2D" parent="BodyFlip/BodyRig/Root/TorsoBone"]
+position = Vector2(-30, -76)
+
+[node name="ArmBack" type="Sprite2D" parent="BodyFlip/BodyRig/Root/TorsoBone/ArmBackBone"]
+texture = ExtResource("4_arm_back")
+position = Vector2(-15, 30.4)
+z_index = -2
+
+[node name="ScarfBackBone" type="Node2D" parent="BodyFlip/BodyRig/Root/TorsoBone"]
+position = Vector2(-38, -102)
+
+[node name="ScarfBack" type="Sprite2D" parent="BodyFlip/BodyRig/Root/TorsoBone/ScarfBackBone"]
+texture = ExtResource("2_scarf_back")
+position = Vector2(-33.5, 2.2)
+z_index = -4
+
+[node name="ScarfFrontBone" type="Node2D" parent="BodyFlip/BodyRig/Root/TorsoBone"]
+position = Vector2(-38, -102)
+
+[node name="ScarfFront" type="Sprite2D" parent="BodyFlip/BodyRig/Root/TorsoBone/ScarfFrontBone"]
+texture = ExtResource("11_scarf_front")
+position = Vector2(35.5, 7.5)
+z_index = 5
+
+[node name="AimPivot" type="Node2D" parent="."]
+position = Vector2(25, -94)
+z_index = 7
+
+[node name="ArmFront" type="Sprite2D" parent="AimPivot"]
+texture = ExtResource("10_arm_front")
+position = Vector2(32.6, 24)
+
+[node name="Weapon" type="Sprite2D" parent="AimPivot"]
+texture = ExtResource("12_weapon")
+position = Vector2(62.9, 36.6)
+z_index = 1

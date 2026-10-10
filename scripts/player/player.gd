@@ -67,11 +67,7 @@ var dash_trail_left := 0.0
 var last_grounded := false
 
 @onready var camera: Camera2D = $Camera2D
-@onready var body_visual: Node2D = $VisualRoot
-@onready var authored_sprite: Sprite2D = $VisualRoot/AuthoredSprite
-@onready var core_visual: Polygon2D = $VisualRoot/CoreGlow
-@onready var weapon_pivot: Node2D = $WeaponPivot
-@onready var weapon_sprite: Sprite2D = $WeaponPivot/WeaponSprite
+@onready var visual_rig: Node2D = $Runner24Rig
 
 func _ready() -> void:
 	add_to_group("player")
@@ -260,27 +256,15 @@ func _physics_process(delta: float) -> void:
 func _post_move_feedback() -> void:
 	var grounded_now := is_on_floor()
 	if grounded_now and not last_grounded and visual_time > 0.20:
-		body_visual.scale = Vector2(facing * 1.10, 0.84)
+		if is_instance_valid(visual_rig) and visual_rig.has_method("trigger_land"):
+			visual_rig.trigger_land()
 		camera_shake = maxf(camera_shake, 1.15)
 		_spawn_fx(global_position + Vector2(0, 27), Color(0.95, 0.90, 0.82), 18.0, 0.13, 7)
 	last_grounded = grounded_now
 
 func _spawn_dash_ghost(is_phase: bool) -> void:
-	if not is_instance_valid(authored_sprite):
-		return
-	var ghost := Sprite2D.new()
-	ghost.texture = authored_sprite.texture
-	ghost.z_index = 5
-	ghost.modulate = Color(1.0, 0.34, 0.70, 0.34) if is_phase else Color(0.20, 0.84, 0.78, 0.24)
-	get_tree().current_scene.add_child(ghost)
-	ghost.global_position = global_position + body_visual.position
-	ghost.rotation = body_visual.rotation
-	ghost.scale = Vector2(authored_sprite.scale.x * body_visual.scale.x, authored_sprite.scale.y * body_visual.scale.y)
-	var tween := create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(ghost, "modulate:a", 0.0, 0.18)
-	tween.tween_property(ghost, "scale", ghost.scale * Vector2(1.08, 0.92), 0.18)
-	tween.chain().tween_callback(ghost.queue_free)
+	if is_instance_valid(visual_rig) and visual_rig.has_method("spawn_afterimage"):
+		visual_rig.spawn_afterimage(get_tree().current_scene, global_position, facing, is_phase)
 
 func _update_camera_shake(delta: float) -> void:
 	camera_shake = move_toward(camera_shake, 0.0, 15.0 * delta)
@@ -406,10 +390,6 @@ func _update_aim_direction() -> void:
 			aim_direction = mouse_aim.normalized()
 	if aim_direction.x != 0.0:
 		facing = signf(aim_direction.x)
-	if is_instance_valid(weapon_pivot):
-		weapon_pivot.rotation = aim_direction.angle()
-		weapon_pivot.position = Vector2(8.0 * facing, -4.0)
-		weapon_sprite.flip_v = aim_direction.x < 0.0
 
 func _shoot() -> void:
 	shot_fired.emit()
@@ -428,7 +408,8 @@ func _shoot() -> void:
 	for angle in angles:
 		_spawn_player_projectile(aim.rotated(angle), 1, 1120.0, false, 0.12)
 
-	core_visual.rotation += 0.24
+	if is_instance_valid(visual_rig) and visual_rig.has_method("trigger_shoot"):
+		visual_rig.trigger_shoot()
 
 func register_hit() -> void:
 	hit_confirmed.emit()
@@ -467,6 +448,8 @@ func take_damage(amount: int, knockback: Vector2 = Vector2.ZERO) -> void:
 	damage_taken.emit(amount)
 	Sfx.play("hurt", -7.0)
 	camera_shake = maxf(camera_shake, 5.0)
+	if is_instance_valid(visual_rig) and visual_rig.has_method("trigger_hurt"):
+		visual_rig.trigger_hurt()
 	_spawn_fx(global_position, Color(0.85, 0.12, 0.29), 28.0, 0.18, 8)
 	health_changed.emit(health, max_health)
 	if health <= 0:
@@ -566,47 +549,17 @@ func fall_respawn() -> void:
 		velocity = Vector2.ZERO
 
 func _update_visual() -> void:
-	var step := sin(visual_time * 15.0)
-	var breathe := sin(visual_time * 3.2)
+	if not is_instance_valid(visual_rig) or not visual_rig.has_method("update_pose"):
+		return
 	var recoil := clampf(recoil_anim / 0.12, 0.0, 1.0)
-
-	if phase_rush_left > 0.0:
-		body_visual.scale = body_visual.scale.lerp(Vector2(1.50, 0.60), 0.45)
-		body_visual.rotation = lerpf(body_visual.rotation, -facing * 0.08, 0.35)
-		body_visual.position.y = -2.0
-		core_visual.scale = core_visual.scale.lerp(Vector2(1.45, 0.65), 0.40)
-	elif dash_left > 0.0:
-		body_visual.scale = body_visual.scale.lerp(Vector2(1.30, 0.72), 0.38)
-		body_visual.rotation = lerpf(body_visual.rotation, -facing * 0.045, 0.30)
-		body_visual.position.y = 1.0
-		core_visual.scale = core_visual.scale.lerp(Vector2(1.20, 0.76), 0.30)
-	elif not is_on_floor():
-		body_visual.position.y = -2.0
-		if velocity.y < 0.0:
-			body_visual.scale = body_visual.scale.lerp(Vector2(0.91, 1.12), 0.24)
-			body_visual.rotation = lerpf(body_visual.rotation, facing * 0.035, 0.22)
-		else:
-			body_visual.scale = body_visual.scale.lerp(Vector2(1.08, 0.92), 0.24)
-			body_visual.rotation = lerpf(body_visual.rotation, -facing * 0.045, 0.22)
-		core_visual.scale = core_visual.scale.lerp(Vector2(1.05, 1.05), 0.22)
-	elif absf(velocity.x) > 35.0:
-		var squash := absf(step) * 0.035
-		body_visual.scale = body_visual.scale.lerp(Vector2(1.0 + squash, 1.0 - squash * 0.75), 0.32)
-		body_visual.position.y = absf(step) * 2.6
-		body_visual.rotation = lerpf(body_visual.rotation, step * 0.018 - facing * 0.018, 0.28)
-		core_visual.scale = core_visual.scale.lerp(Vector2.ONE * (1.0 + absf(step) * 0.05), 0.25)
-	else:
-		body_visual.scale = body_visual.scale.lerp(Vector2(1.0 + breathe * 0.012, 1.0 - breathe * 0.010), 0.22)
-		body_visual.position.y = breathe * 1.2
-		body_visual.rotation = lerpf(body_visual.rotation, breathe * 0.008, 0.20)
-		core_visual.scale = core_visual.scale.lerp(Vector2.ONE * (1.0 + breathe * 0.07), 0.20)
-
-	authored_sprite.position.x = 0.0
-	authored_sprite.position.y = -1.0
-	weapon_pivot.position = Vector2(8.0 * facing, -4.0) - aim_direction.normalized() * recoil * 7.0
-	weapon_pivot.position.y += body_visual.position.y * 0.35
-	weapon_sprite.modulate = Color(1.0, 0.93 + recoil * 0.07, 0.82 + recoil * 0.18, 1.0)
-	core_visual.modulate.a = 0.38 + (sin(visual_time * 6.0) + 1.0) * 0.20
-
-	# Mirror the complete cutout while preserving the authored silhouette.
-	body_visual.scale.x = absf(body_visual.scale.x) * facing
+	visual_rig.update_pose(
+		visual_time,
+		velocity,
+		is_on_floor(),
+		facing,
+		aim_direction,
+		dash_left,
+		phase_rush_left,
+		recoil,
+		dead
+	)

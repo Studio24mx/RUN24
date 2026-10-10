@@ -70,12 +70,23 @@ Create visually complete overlapping pieces with hidden paint under joints:
 - Scarf is a separate secondary-motion chain.
 - Muzzle position exported/defined separately for projectile spawn.
 
+## Current production state
+- `runner24_master.kra` exists and opens/exports successfully in Krita.
+- `runner24_master.ora` is retained as an interoperable layered source.
+- 12 separated layers are preserved under `art/source/krita/runner24/layers/`.
+- Cropped runtime pieces live under `art/game/characters/runner24/runtime/`.
+- `runner24_rig.tscn` is integrated into the existing Player scene.
+- The cutout rig currently drives idle, run, jump/fall, dash, aim/shoot, recoil, CORE pulse, scarf secondary motion, hurt and landing feedback.
+- Mechanical smoke test passes with the new rig.
+- Visual QA status: production blockout accepted; final paint/material pass is still required before art approval.
+
 ## Export targets
 - art/source/krita/runner24/runner24_master.kra
-- art/source/krita/runner24/runner24_turnaround.kra
-- art/game/characters/runner24/body/*.png
-- art/game/characters/runner24/weapon/*.png
-- art/game/characters/runner24/fx/*.png
+- art/source/krita/runner24/runner24_master.ora
+- art/source/krita/runner24/layers/*.png
+- art/game/characters/runner24/runtime/*.png
+- scenes/player/runner24_rig.tscn
+- scripts/player/runner24_rig.gd
 
 ## Acceptance test
 The asset is approved only when:
